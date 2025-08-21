@@ -4,7 +4,7 @@ from flask import request
 from http import HTTPStatus
 from models.tenant import CrmFunnel, CrmFunnelStage
 from flask_restx import Resource, fields, Namespace
-from models.helpers import _get_params, db, _show_query
+from models.helpers import _get_params, db #, _show_query
 from sqlalchemy import Update, desc, exc, and_, asc, Select
 
 ns_funil = Namespace("funnels",description="Operações para manipular funis de clientes")
@@ -93,7 +93,7 @@ class FunnelList(Resource):
             if filter_default is not None:
                 rquery = rquery.filter(CrmFunnel.is_default==filter_default)
 
-            _show_query(rquery)
+            # _show_query(rquery)
 
             if not list_all:
                 pag    = db.paginate(rquery,page=pag_num,per_page=pag_size)
