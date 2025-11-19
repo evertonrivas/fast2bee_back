@@ -6,6 +6,13 @@ class ShippingCompany(Enum):
     JAMEF     = 3
     ECT       = 4
 
+class UserType(Enum):
+    ADMINISTRATOR  = 'A'
+    STORE          = 'L'
+    ISTORE         = 'I'
+    REPRESENTATIVE = 'R'
+    COMPANY_USER   = 'C'
+
 class MailTemplates(Enum):
     DEFAULT      = 'mail_template.html'
     PWD_RECOVERY = 'password_recovery.html'
