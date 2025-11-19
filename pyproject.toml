@@ -1,5 +1,5 @@
 [project]
-name = "vfashion-server"
+name = "fast2bee-back"
 version = "0.1.0"
 description = ""
 authors = [
@@ -24,6 +24,8 @@ dependencies = [
     "pymysql (>=1.1.1,<2.0.0)",
     "psycopg[binary] (>=3.2.9,<4.0.0)",
     "google-genai (>=1.24.0,<2.0.0)",
+    "filetype (>=1.2.0,<2.0.0)",
+    "psycopg2-binary (>=2.9.11,<3.0.0)",
 ]
 
 [tool.poetry.dependencies]
