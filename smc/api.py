@@ -8,6 +8,7 @@ from smc.payment import ns_payment
 from smc.countries import ns_country
 from smc.customer import ns_customer
 from smc.state_regions import ns_state_region
+from common import _before_execute
 
 nss = [ns_customer,
        ns_plan,
@@ -19,6 +20,11 @@ nss = [ns_customer,
        ns_config]
 
 bp_smc = Blueprint("smc",__name__,url_prefix="/smc/api/")
+
+@bp_smc.before_request
+def before_request():
+    """ Executa antes de cada requisição """
+    _before_execute()
 
 api = Api(bp_smc,
     version="1.0",

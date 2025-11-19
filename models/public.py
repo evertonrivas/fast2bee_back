@@ -8,7 +8,7 @@ from models.helpers import db as dbForModel
 from sqlalchemy import ForeignKey, func, Column
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime,timedelta, timezone
-from sqlalchemy import DECIMAL, Date,Index, Boolean
+from sqlalchemy import DECIMAL, Date,Index, Boolean, event
 from sqlalchemy import String, Integer, CHAR, DateTime, SmallInteger
 
 BASEDIR = path.abspath(path.dirname(__file__))
@@ -28,7 +28,6 @@ class SysUsers(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
     id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
-    id_customer     = Column(ForeignKey(SysCustomer.id),primary_key=True,nullable=False)
     name            = Column(String(255),nullable=False,comment="Nome do usuário")
     username        = Column(String(100), nullable=False,unique=True)
     email           = Column(String(255),nullable=False,unique=True)
@@ -40,15 +39,15 @@ class SysUsers(dbForModel.Model):
     token           = Column(String(255),index=True,unique=True,nullable=True)
     token_expire    = Column(DateTime,nullable=True)
     is_authenticate = Column(Boolean,nullable=False,server_default='0',default=0)
-
-    def hash_pwd(self,pwd:str):
-        self.password = bcrypt.hashpw(pwd.encode(),bcrypt.gensalt()).decode()
-        return self.password
     
-    def check_pwd(self,pwd:str):
-        return bcrypt.checkpw(pwd, self.password.encode()) # type: ignore
+    def check_pwd(self,pwd:str) -> bool:
+        status = bcrypt.checkpw(pwd,self.password.encode())
+        return status
+    
+    def hash_pwd(self,pwd:str) -> None:
+        self.password = bcrypt.hashpw(pwd.encode(),bcrypt.gensalt()).decode()
 
-    def get_token(self,_profile:str,expires_in:int=int(str(environ.get("F2B_EXPIRE_SESSION")))):
+    def get_token(self,_profile:str,expires_in:int=int(str(environ.get("F2B_EXPIRE_SESSION")))) -> str:
         now        = datetime.now(tz=timezone.utc)
         expire_utc = now + timedelta(seconds=expires_in)
 
@@ -57,7 +56,7 @@ class SysUsers(dbForModel.Model):
         self.token_expire = expire_utc
         return self.token
        
-    def renew_token(self):
+    def renew_token(self) -> datetime:
         now               = datetime.now(tz=timezone.utc) + timedelta(seconds=int(str(environ.get("F2B_EXPIRE_SESSION"))))
         data_token        = jwt.decode(str(self.token),str(environ.get("F2B_TOKEN_KEY")),algorithms=['HS256'])
         data_token["exp"] = now
@@ -65,10 +64,10 @@ class SysUsers(dbForModel.Model):
         self.token_expire = now
         return now
 
-    def revoke_token(self):
+    def revoke_token(self) -> None:
         self.token_expire = datetime.now() - timedelta(seconds=1)
 
-    def logout(self):
+    def logout(self) -> None:
         self.is_authenticate = False
         self.token = None
 
@@ -89,6 +88,15 @@ class SysUsers(dbForModel.Model):
             return None
         return user
 IDX_USERNAME = Index("IDX_USERNAME",SysUsers.username,unique=True)
+
+@event.listens_for(SysUsers,"before_insert")
+def insert_user(mapper,connection,target:SysUsers):
+    target.password = bcrypt.hashpw(target.password.encode(),bcrypt.gensalt()).decode()
+
+# @event.listens_for(SysUsers,"before_update")
+# def update_user(mapper,connection,target:SysUsers):
+#     if target.password is not None:
+#         target.password = bcrypt.hashpw(target.password.encode(),bcrypt.gensalt()).decode()
 
 class SysCustomer(dbForModel.Model):
     __bind_key__      = "public"
@@ -160,7 +168,7 @@ class SysStateRegions(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
     id         = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
-    id_country = Column(ForeignKey(SysCountries.id),nullable=False,index=True,comment="Id da tabela SysCountries",index=True)
+    id_country = Column(ForeignKey(SysCountries.id),nullable=False,index=True,comment="Id da tabela SysCountries")
     name       = Column(String(100),nullable=False)
     acronym    = Column(String(10),nullable=False)
 
@@ -168,7 +176,7 @@ class SysCities(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
     id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
-    id_state_region = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmStateRegions",index=True)
+    id_state_region = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmStateRegions")
     name            = Column(String(100),nullable=False)
     brazil_ibge_code= Column(String(10),nullable=True)
 
@@ -176,8 +184,8 @@ class SysCustomerHistory(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
     id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
-    id_user      = Column(ForeignKey(SysUsers.id),nullable=False,index=True,comment="Id do usuário que realizou a ação",index=True)
-    id_customer  = Column(ForeignKey(SysCustomer.id),nullable=False,index=True,comment="Id da tabela SysCustomer",index=True)
+    id_user      = Column(ForeignKey(SysUsers.id),nullable=False,index=True,comment="Id do usuário que realizou a ação")
+    id_customer  = Column(ForeignKey(SysCustomer.id),nullable=False,index=True,comment="Id da tabela SysCustomer")
     action       = Column(CHAR(2),nullable=False,comment="SA = System Access, DR = Data Registered, DU = Data Updated, DD = Data Deleted")
     history      = Column(String(255),nullable=False,comment="Histórico da ação realizada")
     date_created = Column(DateTime,nullable=False,server_default=func.now())
@@ -186,7 +194,7 @@ class SysConfig(dbForModel.Model):
     __bind_key__        = "public"
     __table_args__      = {"schema":"public"}
     id                  = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
-    id_customer         = Column(ForeignKey(SysCustomer.id),nullable=False,unique=True,index=True,comment="Id da tabela SysCustomer",index=True)
+    id_customer         = Column(ForeignKey(SysCustomer.id),nullable=False,unique=True,index=True,comment="Id da tabela SysCustomer")
     pagination_size     = Column(SmallInteger,nullable=False,default=0)
     email_brevo_api_key = Column(String(2550),nullable=True)
     email_from_name     = Column(String(200),nullable=False)

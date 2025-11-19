@@ -14,6 +14,7 @@ from cmm.legal_entities import ns_legal
 from cmm.products_category import ns_cat
 from cmm.translate_colors import ns_color
 from cmm.measure_unit import ns_measure_unit
+from cmm.integration import ns_integra
 from common import _before_execute
 
 
@@ -37,7 +38,8 @@ nss = [ns_ai,
        ns_size,
        ns_type,
        ns_upload,
-       ns_email
+       ns_email,
+       ns_integra
     ]
 
 

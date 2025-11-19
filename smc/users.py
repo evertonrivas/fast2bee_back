@@ -5,10 +5,10 @@ from http import HTTPStatus
 from datetime import datetime
 from models.helpers import _get_params, db
 from flask_restx import Resource ,Namespace, fields
-from f2bconfig import CustomerAction, MailTemplates
+from f2bconfig import CustomerAction, MailTemplates, UserType
 from common import _send_email, _get_dashboard_config
 from models.public import _save_customer_log, SysConfig
-from models.public import SysUsers, SysCustomer, SysCustomerUser
+from models.public import SysUsers, SysCustomer, SysCustomerUser, SysPlan, SysCustomerPlan
 from sqlalchemy import Delete, Select, desc, exc, and_, asc, func, or_
 
 ns_user = Namespace("users",description="Operações para manipular dados de usuários do sistema")
@@ -28,6 +28,7 @@ usr_model = ns_user.model(
         "id": fields.Integer,
         "username": fields.String,
         "name":fields.String,
+        "email": fields.String,
         "password": fields.String,
         "type": fields.String(enum=['A','L','R','V','U']),
         "date_created": fields.DateTime,
@@ -39,6 +40,13 @@ usr_return = ns_user.model(
     "UserReturn",{
         "pagination": fields.Nested(usr_pag_model),
         "data": fields.List(fields.Nested(usr_model))
+    }
+)
+
+m_new_users = ns_user.model(
+    "NewCustomer",{
+        "id_customer": fields.Integer,
+        "users": fields.List(fields.Nested(usr_model))
     }
 )
 
@@ -125,67 +133,74 @@ class UsersList(Resource):
 
     @ns_user.response(HTTPStatus.OK,"Cria um ou mais novo(s) usuário(s) no sistema")
     @ns_user.response(HTTPStatus.BAD_REQUEST,"Falha ao criar!")
+    @ns_user.doc(body=m_new_users,description="Dados para cadastro de novo usuário")
     @auth.login_required
     def post(self):
         try:
             req = request.get_json()
 
-            for usr in req:
+            for usr in req["users"]:
+
+                # primeiramente busca o numero de licensas do plano assinado pelo cliente
+                plan = db.session.execute(
+                    Select(SysPlan.adm_licenses,SysPlan.user_licenses,SysPlan.store_licenses,SysPlan.istore_licenses,SysPlan.repr_licenses).where(
+                        SysPlan.id==(Select(SysCustomerPlan.id_plan).where(SysCustomerPlan.id_customer==req['id_customer']))
+                    )
+                ).first()
 
                 total = db.session.execute(
                     Select(func.count(SysUsers.id).label("total_lic")).where(SysUsers.type==usr["type"])
                 ).first()
                 if total is not None:
                     #A = Administrador, L = Lojista, I = Lojista (IA), R = Representante, V = Vendedor, C = Company User
-                    if usr["type"]=="A" and total.total_lic == int(str(environ.get("F2B_MAX_ADM_LICENSE"))):
+                    if usr["type"]==UserType.ADMINISTRATOR.value and total.total_lic == int(plan.adm_licenses):
                         return {
                             "error_code": -1,
                             "error_details": "Número máximo de licenças Adm. atingido!",
                             "error_sql": ""
                         }
-                    elif usr["type"]=="R" and total.total_lic == int(str(environ.get("F2B_MAX_REP_LICENSE"))):
+                    elif usr["type"]==UserType.REPRESENTATIVE.value and total.total_lic == int(plan.repr_licenses):
                         return {
                             "error_code": -1,
                             "error_details": "Número máximo de licenças REP. atingido!",
                             "error_sql": ""
                         }
-                    elif usr["type"]=="I" and total.total_lic == int(str(environ.get("F2B_MAX_SIA_LICENSE"))):
+                    elif usr["type"]==UserType.ISTORE.value and total.total_lic == int(plan.istore_licenses):
                         return {
                             "error_code": -1,
                             "error_details": "Número máximo de licenças I.A atingido!",
                             "error_sql": ""
                         }
-                    elif usr["type"]=="L" and total.total_lic == int(str(environ.get("F2B_MAX_STR_LICENSE"))):
+                    elif usr["type"]==UserType.STORE.value and total.total_lic == int(plan.store_licenses):
                         return {
                             "error_code": -1,
                             "error_details": "Número máximo de licenças Lojista atingido!",
                             "error_sql": ""
                         }
-                    elif usr["type"]=="U" and total.total_lic == int(str(environ.get("F2B_MAX_USR_LICENSE"))):
+                    elif usr["type"]==UserType.COMPANY_USER.value and total.total_lic == int(plan.user_licenses):
                         return {
                             "error_code": -1,
                             "error_details": "Número máximo de licenças Colaborador atingido!",
                             "error_sql": ""
                         }
 
-                    if usr["id"]==0:
+                    user:SysUsers|None = SysUsers.query.get(int(usr["id"]))
+                    if user is None:
                         user = SysUsers()
                         user.name     = usr["name"]
                         user.email    = usr["email"]
                         user.username = usr["username"]
-                        user.password = user.hash_pwd(usr["password"])
+                        user.password = usr["password"]
                         user.type     = usr["type"]
                         db.session.add(user)
                         db.session.commit()
                     else:
-                        user:SysUsers|None = SysUsers.query.get(usr["id"])
-                        if user is not None:
-                            user.name     = usr["name"]
-                            user.email    = usr["email"]
-                            user.username = usr["username"]
-                            user.password = user.hash_pwd(usr["password"])
-                            user.type     = usr["type"]
-                            db.session.commit()
+                        user.name     = usr["name"]
+                        user.email    = usr["email"]
+                        user.username = usr["username"]
+                        user.password = usr["password"]
+                        user.type     = usr["type"]
+                        db.session.commit()
             return True
         except exc.SQLAlchemyError as e:
             return {
@@ -224,6 +239,7 @@ class UserApi(Resource):
         try:
             rquery = Select(
                 SysUsers.name,
+                SysUsers.email,
                 SysUsers.username,
                 SysUsers.type,
                 SysUsers.active,
@@ -485,7 +501,7 @@ class UserUpdate(Resource):
                     if exist_uname is None:
                         usr = SysUsers()
                         setattr(usr,"username",(self.__get_username(id_entity,req["rule"])))
-                        usr.password = usr.hash_pwd(req["password"])
+                        usr.password = req["password"]
                         setattr(usr,"type",req["type"])
                         db.session.add(usr)
                         db.session.commit()
@@ -500,7 +516,7 @@ class UserUpdate(Resource):
                     usrE = db.session.execute(Select(SysCustomerUser.id_user).where(SysCustomerUser.id_customer==id_entity)).first()
                     usr:SysUsers|None = SysUsers.query.get(0 if usrE is None else usrE.id_user)
                     if usr is not None:
-                        usr.password = usr.hash_pwd(req["password"])
+                        usr.password = req["password"]
                         setattr(usr,"username",self.__get_username(id_entity,req["rule"]))
                         setattr(usr,"type",req["type"])
                         db.session.commit()
@@ -537,7 +553,7 @@ class UserNew(Resource):
                 usr.type     = req["type"]
                 setattr(usr,"active",True)
                 setattr(usr,"date_created",datetime.now())
-                usr.password = usr.hash_pwd(req["password"])
+                usr.password = req["password"]
                 db.session.add(usr)
                 db.session.commit()
 
@@ -568,7 +584,7 @@ class UserPassword(Resource):
             row = db.session.execute(stmt).first()
             usr: SysUsers | None = row[0] if row is not None else None
             if usr is not None:
-                usr.password = usr.hash_pwd(pwd)
+                usr.password = pwd
                 db.session.commit()
                 return pwd
         except exc.SQLAlchemyError as e:

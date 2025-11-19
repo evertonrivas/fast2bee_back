@@ -17,9 +17,11 @@ def _before_execute(check:bool = False):
             tkn = request.headers["Authorization"].replace("Bearer ","")
             if tkn is not None:
                 token = SysUsers.extract_token(tkn) if tkn else None
-                tenant = Database(str('' if token is None else token["profile"]))
+                tenant = Database(str('public' if token is None else token["profile"]))
                 tenant.switch_schema()
     else:
+        # se a URL for de autenticacao, configuracao ou do start utilizar o schema public, caso contrario deverah mudar
+        # para o schema do cliente
         has_auth = request.base_url.find("users/auth")
         has_config = request.base_url.find("config")
         has_start = request.base_url.find("start")
