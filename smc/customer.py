@@ -207,8 +207,8 @@ class CustomerList(Resource):
             req["taxvat"],
             req["postal_code"],
             req["plan"]["id"],
-            req["payment_model"] if "payment_model" in req else "M",
-            req["payment_method"] if "payment_method" in req else "C"
+            req["payment_model"] if "payment_model" in req else environ.getenv("F2B_DEFAULT_PAYMENT_MODEL"),
+            req["payment_method"] if "payment_method" in req else environ.getenv("F2B_DEFAULT_PAYMENT_METHOD")
         )
         
         
