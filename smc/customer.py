@@ -91,7 +91,7 @@ def _register_customer(
             tenant.create_tables()
 
             start_date = str(datetime.now().year)+"-01-01"
-            end_date   = str(datetime.now().year+100)+"-01-01"
+            end_date   = str(datetime.now().year+50)+"-12-31" # correcao na data final para o fim do ano
 
             # as funcoes do PostgreSQL sao chamadas com o SELECT
             db.session.execute(text("SELECT public.populate('"+str(customer.id)+"','"+start_date+"','"+end_date+"')"))
