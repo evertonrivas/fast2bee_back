@@ -110,9 +110,9 @@ class SysPlan(dbForModel.Model):
     value           = Column(DECIMAL(10,2),nullable=False)
     adm_licenses    = Column(Integer,nullable=False,default=1,server_default='1',comment="Número de licenças de administrador")
     user_licenses   = Column(Integer,nullable=False,default=1,server_default='1',comment="Número de licenças de usuário")
-    repr_licenses   = Column(Integer,nullable=False,default=1,server_default='1',comment="Número de licenças de representante")
-    store_licenses  = Column(Integer,nullable=False,default=1,server_default='1',comment="Número de licenças de loja")
-    istore_licenses = Column(Integer,nullable=False,default=1,server_default='1',comment="Número de licenças de loja (IA)")
+    repr_licenses   = Column(Integer,nullable=False,default=1,server_default='1',comment="Número de licenças de representante. -1 = ilimitadas")
+    store_licenses  = Column(Integer,nullable=False,default=1,server_default='1',comment="Número de licenças de loja. -1 = ilimitadas")
+    istore_licenses = Column(Integer,nullable=False,default=1,server_default='1',comment="Número de licenças de loja (IA). -1 = ilimitadas")
     date_created    = Column(DateTime,nullable=False,server_default=func.now())
     date_updated    = Column(DateTime,onupdate=func.now())
 
