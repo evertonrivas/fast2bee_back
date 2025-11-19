@@ -20,12 +20,12 @@ def _save_entity_log(id:int, act:EntityAction, p_log_action:str):
     dbForModel.session.commit()
 
 class CmmUserEntity(dbForModel.Model):
-    id_user     = Column(Integer,nullable=False,primary_key=True)
-    id_entity   = Column(Integer,nullable=False,primary_key=True,default=0,comment="Id da tabela CmmLegalEntities")
+    id_user     = Column(Integer,nullable=False,primary_key=True,index=True)
+    id_entity   = Column(Integer,nullable=False,primary_key=True,default=0,index=True,comment="Id da tabela CmmLegalEntities")
 
 class CmmCategories(dbForModel.Model):
-    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
-    origin_id    = Column(Integer,nullable=True,index=True)
+    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
+    origin_id    = Column(Integer,nullable=True)
     name         = Column(String(128),nullable=False)
     id_parent    = Column(Integer,nullable=True)
     date_created = Column(DateTime,nullable=False,server_default=func.now())
@@ -34,7 +34,7 @@ class CmmCategories(dbForModel.Model):
 
 
 class CmmProducts(dbForModel.Model):
-    id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     id_type         = Column(Integer,nullable=False,index=True,comment="Campo Id da tabela CmmProductsTypes")
     id_model        = Column(Integer,nullable=False,index=True,comment="Campo Id da tabela CmmProductsModels")
     id_grid         = Column(Integer,nullable=False,index=True,comment="Campo Id da tabela CmmProductsGrid")
@@ -55,7 +55,7 @@ class CmmProducts(dbForModel.Model):
     trash           = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class CmmProductsImport(dbForModel.Model):
-    id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     refCode         = Column(String(50),nullable=False)
     barCode         = Column(String(128))
     type            = Column(String(255),nullable=False)
@@ -72,13 +72,13 @@ class CmmProductsImport(dbForModel.Model):
     date_created    = Column(DateTime,nullable=False,server_default=func.now())
 
 class CmmProductsImages(dbForModel.Model):
-    id          = Column(Integer,nullable=False,primary_key=True,autoincrement=True)
+    id          = Column(Integer,nullable=False,primary_key=True,autoincrement=True,index=True)
     id_product  = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmProduct")
     img_url     = Column(String(255),nullable=False)
     img_default = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class CmmProductsTypes(dbForModel.Model):
-    id           = Column(Integer,nullable=False,primary_key=True,autoincrement=True)
+    id           = Column(Integer,nullable=False,primary_key=True,autoincrement=True,index=True)
     origin_id    = Column(Integer,nullable=True,comment="Utilizado em caso de importacao")
     name         = Column(String(128),nullable=False)
     date_created = Column(DateTime,nullable=False,server_default=func.now())
@@ -86,7 +86,7 @@ class CmmProductsTypes(dbForModel.Model):
     trash        = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class CmmProductsModels(dbForModel.Model):
-    id           = Column(Integer,nullable=False,primary_key=True,autoincrement=True)
+    id           = Column(Integer,nullable=False,primary_key=True,autoincrement=True,index=True)
     origin_id    = Column(Integer,nullable=True,comment="Utilizado em caso de importacao")
     name         = Column(String(255),nullable=False)
     date_created = Column(DateTime,nullable=False,server_default=func.now())
@@ -94,11 +94,11 @@ class CmmProductsModels(dbForModel.Model):
     trash        = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class CmmProductsCategories(dbForModel.Model):
-    id_category  = Column(Integer,primary_key=True,nullable=False)
-    id_product   = Column(Integer,primary_key=True,nullable=False)
+    id_category  = Column(Integer,primary_key=True,nullable=False,index=True)
+    id_product   = Column(Integer,primary_key=True,nullable=False,index=True)
 
 class CmmProductsGrid(dbForModel.Model):
-    id           = Column(Integer,primary_key=True,autoincrement=True,nullable=False)
+    id           = Column(Integer,primary_key=True,autoincrement=True,nullable=False,index=True)
     name         = Column(String(128))
     date_created = Column(DateTime,nullable=False,server_default=func.now())
     date_updated = Column(DateTime,onupdate=func.now())
@@ -107,22 +107,22 @@ class CmmProductsGrid(dbForModel.Model):
 # define quais serao os tamanhos utilizados na grade
 # serve para garantir a montagem da grade antes de preencher
 class CmmProductsGridSizes(dbForModel.Model):
-    id_grid = Column(Integer,primary_key=True)
-    id_size = Column(Integer,primary_key=True)
+    id_grid = Column(Integer,primary_key=True,index=True)
+    id_size = Column(Integer,primary_key=True,index=True)
 
 class CmmProductsGridDistribution(dbForModel.Model):
-    id_grid    = Column(Integer,primary_key=True,nullable=False)
-    id_size    = Column(Integer,primary_key=True,nullable=False)
+    id_grid    = Column(Integer,primary_key=True,nullable=False,index=True)
+    id_size    = Column(Integer,primary_key=True,nullable=False,index=True)
     value      = Column(Integer,nullable=False)
 
 class CmmMeasureUnit(dbForModel.Model):
-    id          = Column(Integer,primary_key=True,autoincrement=True)
+    id          = Column(Integer,primary_key=True,autoincrement=True,index=True)
     code        = Column(CHAR(4),nullable=False)
     description = Column(String(50),nullable=False)
     trash       = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class CmmLegalEntities(dbForModel.Model):
-    id                = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id                = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     origin_id         = Column(Integer,nullable=True,comment="Utilizado em caso de importacao")
     name              = Column(String(255),nullable=False)
     fantasy_name      = Column(String(255),nullable=False)
@@ -141,7 +141,7 @@ class CmmLegalEntities(dbForModel.Model):
     date_updated      = Column(DateTime,onupdate=func.now())
 
 class CmmLegalEntityContact(dbForModel.Model):
-    id              = Column(Integer,primary_key=True,autoincrement=True)
+    id              = Column(Integer,primary_key=True,autoincrement=True,index=True)
     id_legal_entity = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmLegalEntities")
     name            = Column(String(150),nullable=False)
     contact_type    = Column(CHAR(1),nullable=False,server_default='E',default='E',comment='E = E-mail, P = Phone, L = Linkedin, I = Instagram, W = Website, B = Blog, S = Social Media')
@@ -152,14 +152,14 @@ class CmmLegalEntityContact(dbForModel.Model):
     date_updated    = Column(DateTime,onupdate=func.now())
 
 class CmmLegalEntityHistory(dbForModel.Model):
-    id              = Column(Integer,primary_key=True,autoincrement=True)
+    id              = Column(Integer,primary_key=True,autoincrement=True,index=True)
     id_legal_entity = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmLegalEntities")
     history         = Column(Text,nullable=False)
     action          = Column(CHAR(2),nullable=False,comment='DR = Data Registered,DU = Data Updated, MC = Move CRM Funil/Stage, CS = Chat Message Sended, CR = Chat Message Received, OC = Order Created, OU = Order Update, OD = Order Canceled, SA = System Access, TC = Task Created, FA = File Attached, FD = File Dettached, ES = E-mail Sended, ER = E-mail Replied, RC = Return Created, RU = Return Updated, FB = Financial Bloqued, FU = Financial Unbloqued')
     date_created    = Column(DateTime,nullable=False,server_default=func.now())
 
 class CmmLegalEntityFile(dbForModel.Model):
-    id              = Column(Integer,primary_key=True,autoincrement=True)
+    id              = Column(Integer,primary_key=True,autoincrement=True,index=True)
     id_legal_entity = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmLegalEntities")
     name            = Column(String(255),nullable=False)
     folder          = Column(String(50),nullable=False)
@@ -168,7 +168,7 @@ class CmmLegalEntityFile(dbForModel.Model):
     date_updated    = Column(DateTime,onupdate=func.now())
 
 class CmmLegalEntityImport(dbForModel.Model):
-    id               = Column(Integer,primary_key=True,autoincrement=True)
+    id               = Column(Integer,primary_key=True,autoincrement=True,index=True)
     id_original      = Column(String(11),nullable=True)
     taxvat           = Column(String(30),nullable=False)
     name             = Column(String(255),nullable=False)
@@ -188,7 +188,7 @@ class CmmLegalEntityImport(dbForModel.Model):
     date_created     = Column(DateTime,nullable=False,server_default=func.now())
 
 class CmmTranslateColors(dbForModel.Model):
-    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     hexcode      = Column(String(8),nullable=True)
     name         = Column(String(100),nullable=False)
     color        = Column(String(100),nullable=False,comment="Original color name")
@@ -197,7 +197,7 @@ class CmmTranslateColors(dbForModel.Model):
     date_updated = Column(DateTime,onupdate=func.now())
 
 class CmmTranslateSizes(dbForModel.Model):
-    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     new_size     = Column(String(10),nullable=False)
     name         = Column(String(100),nullable=False)
     old_size     = Column(String(5),nullable=False,comment="Original size name")
@@ -206,7 +206,7 @@ class CmmTranslateSizes(dbForModel.Model):
     date_updated = Column(DateTime,onupdate=func.now())
 
 class CmmReport(dbForModel.Model):
-    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     name         = Column(String(255),nullable=False,comment="Nome que aparece para selecionar o relatorio")
     category     = Column(SmallInteger,nullable=False,comment="1 = Clientes, 2 = Calendario, 3 = CRM, 4 = Devoluções, 5 = Pedidos")
     title        = Column(String(255),nullable=False,comment="Titulo quando o relatorio e aberto")
@@ -226,17 +226,17 @@ class CmmReport(dbForModel.Model):
     date_updated = Column(DateTime,onupdate=func.now())
 
 class B2bBrand(dbForModel.Model):
-    id            = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id            = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     name          = Column(String(100),nullable=False)
     date_created  = Column(DateTime,nullable=False,server_default=func.now())
     date_updated  = Column(DateTime,onupdate=func.now())
     trash         = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class B2bCartShopping(dbForModel.Model):
-    id_customer = Column(Integer,primary_key=True)
-    id_product  = Column(Integer,primary_key=True)
-    id_color    = Column(Integer,primary_key=True)
-    id_size     = Column(Integer,primary_key=True)
+    id_customer = Column(Integer,primary_key=True,index=True)
+    id_product  = Column(Integer,primary_key=True,index=True)
+    id_color    = Column(Integer,primary_key=True,index=True)
+    id_size     = Column(Integer,primary_key=True,index=True)
     quantity    = Column(Integer,nullable=False)
     price       = Column(DECIMAL(10,2),nullable=False)
     user_create = Column(Integer,nullable=False)
@@ -245,15 +245,15 @@ class B2bCartShopping(dbForModel.Model):
     date_update = Column(DateTime,onupdate=func.now())
 
 class B2bCollection(dbForModel.Model):
-    id            = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
-    id_brand      = Column(Integer,nullable=False)
+    id            = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
+    id_brand      = Column(Integer,nullable=False,index=True)
     name          = Column(String(128),nullable=False)
     date_created  = Column(DateTime,nullable=False,server_default=func.now())
     date_updated  = Column(DateTime,onupdate=func.now())
     trash         = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class B2bCustomerGroup(dbForModel.Model):
-    id                = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id                = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     name              = Column(String(100),nullable=False)
     id_representative = Column(Integer,nullable=True,comment="Id da tabela CmmLegalEntities quando type=R")
     need_approvement  = Column(Boolean,nullable=False,server_default='0',default=0)
@@ -262,11 +262,11 @@ class B2bCustomerGroup(dbForModel.Model):
     date_updated      = Column(DateTime,onupdate=func.now())
 
 class B2bCustomerGroupCustomers(dbForModel.Model):
-    id_customer_group = Column(Integer,primary_key=True,comment="Id da tabela B2bCustomerGroup")
-    id_customer       = Column(Integer,primary_key=True,comment="Id da tabela CmmLegalEntities quando type=C")
+    id_customer_group = Column(Integer,primary_key=True,index=True,comment="Id da tabela B2bCustomerGroup")
+    id_customer       = Column(Integer,primary_key=True,index=True,comment="Id da tabela CmmLegalEntities quando type=C")
 
 class B2bOrders(dbForModel.Model):
-    id                   = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id                   = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     id_customer          = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmLegalEntities")
     id_payment_condition = Column(Integer,nullable=False,index=True,comment="Id da tabela B2bPaymentConditions")
     total_value          = Column(DECIMAL(10,2),nullable=False)
@@ -285,25 +285,25 @@ class B2bOrders(dbForModel.Model):
     trash                = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class B2bOrdersProducts(dbForModel.Model):
-    id_order   = Column(Integer,nullable=False,primary_key=True)
-    id_product = Column(Integer,nullable=False,primary_key=True)
-    id_color   = Column(Integer,primary_key=True,nullable=False)
-    id_size    = Column(Integer,primary_key=True,nullable=False)
+    id_order   = Column(Integer,nullable=False,primary_key=True,index=True)
+    id_product = Column(Integer,nullable=False,primary_key=True,index=True)
+    id_color   = Column(Integer,primary_key=True,nullable=False,index=True)
+    id_size    = Column(Integer,primary_key=True,nullable=False,index=True)
     quantity   = Column(Integer,nullable=False)
     price      = Column(DECIMAL(10,2),nullable=False)
     discount   = Column(DECIMAL(10,2))
     discount_percentage = Column(DECIMAL(10,2))
 
 class B2bProductStock(dbForModel.Model):
-    id_product  = Column(Integer,nullable=False,primary_key=True)
-    id_color    = Column(Integer,nullable=False,primary_key=True)
-    id_size     = Column(Integer,nullable=False,primary_key=True)
+    id_product  = Column(Integer,nullable=False,primary_key=True,index=True)
+    id_color    = Column(Integer,nullable=False,primary_key=True,index=True)
+    id_size     = Column(Integer,nullable=False,primary_key=True,index=True)
     quantity    = Column(SmallInteger,nullable=True)
     in_order    = Column(SmallInteger,nullable=True)
     ilimited    = Column(Boolean,nullable=False,server_default='0')
 
 class B2bTablePrice(dbForModel.Model):
-    id           = Column(Integer,nullable=False,primary_key=True,autoincrement=True)
+    id           = Column(Integer,nullable=False,primary_key=True,autoincrement=True,index=True)
     name         = Column(String(128),nullable=False)
     start_date   = Column(DateTime)
     end_date     = Column(DateTime)
@@ -312,13 +312,13 @@ class B2bTablePrice(dbForModel.Model):
     active       = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class B2bTablePriceProduct(dbForModel.Model):
-    id_table_price = Column(Integer,nullable=False,primary_key=True)
-    id_product     = Column(Integer,nullable=False,primary_key=True)
+    id_table_price = Column(Integer,nullable=False,primary_key=True,index=True)
+    id_product     = Column(Integer,nullable=False,primary_key=True,index=True)
     price          = Column(DECIMAL(10,2),nullable=False,comment="Valor de Preço do Atacado")
     price_retail   = Column(DECIMAL(10,2),nullable=False,comment="Valor de Preço do Varejo")
 
 class B2bPaymentConditions(dbForModel.Model):
-    id            = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id            = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     name          = Column(String(100),nullable=False)
     received_days = Column(SmallInteger,nullable=False,default=1,comment="Dias para receber o valor")
     installments  = Column(SmallInteger,nullable=False,default=1,comment="Número de parcelas")
@@ -327,14 +327,14 @@ class B2bPaymentConditions(dbForModel.Model):
     trash         = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class B2bComissionRepresentative(dbForModel.Model):
-    id                = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
-    id_representative = Column(Integer,nullable=False)
+    id                = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
+    id_representative = Column(Integer,nullable=False,index=True)
     year              = Column(SmallInteger,nullable=False)
     percent           = Column(SmallInteger,nullable=False)
     value             = Column(DECIMAL(10,2),nullable=True)
 
 class B2bTarget(dbForModel.Model):
-    id             = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id             = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     type           = Column(CHAR(1),nullable=False,comment="Y = Year, Q = Quarter, M = Monthly")
     year           = Column(SmallInteger,nullable=False)
     max_value      = Column(SmallInteger,nullable=False)
@@ -358,7 +358,7 @@ class B2bTarget(dbForModel.Model):
 
 
 class CrmFunnel(dbForModel.Model):
-    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     name         = Column(String(128),nullable=False)
     is_default   = Column(Boolean,nullable=False,server_default='0')
     type         = Column(CHAR(1),nullable=False,server_default='S',comment='S = Sales, P = Prospection, D = Devolutions, F = Financial')
@@ -367,8 +367,8 @@ class CrmFunnel(dbForModel.Model):
     trash        = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class CrmFunnelStage(dbForModel.Model):
-    id                = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
-    id_funnel         = Column(Integer,nullable=False)
+    id                = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
+    id_funnel         = Column(Integer,nullable=False,index=True)
     name              = Column(String(128),nullable=False)
     order_status      = Column(SmallInteger,nullable=True, comment="-1 - Rascunho, 0 - Em análise, 1 - Enviado, 2 - Em processamento, 3 - Em transporte, 4 - Finalizado, 5 - Rejeitado, 6 - Cancelado")
     devolution_status = Column(SmallInteger,nullable=True, comment="0 - Salvo, 1 - Em processamento, 2 - Totalmente aprovado, 3 - Parcialmente aprovado, 4 - Reprovado")
@@ -382,23 +382,23 @@ class CrmFunnelStage(dbForModel.Model):
     trash             = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class CrmFunnelStageCustomer(dbForModel.Model):
-    id_funnel_stage = Column(Integer,primary_key=True,nullable=False)
-    id_customer     = Column(Integer,primary_key=True,nullable=False,comment="Id da tabela CmmLegalEntities")
+    id_funnel_stage = Column(Integer,primary_key=True,nullable=False,index=True)
+    id_customer     = Column(Integer,primary_key=True,nullable=False,index=True,comment="Id da tabela CmmLegalEntities")
     date_created    = Column(DateTime,nullable=False,server_default=func.now())
     date_updated    = Column(DateTime,onupdate=func.now())
 
 class CrmConfig(dbForModel.Model):
-    id        = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id        = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     cfg_name  = Column(String(100),nullable=False)
     cfg_value = Column(String(255),nullable=False)
 
 class CrmImportation(dbForModel.Model):
-    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     file         = Column(String(255),nullable=False)
     date_created = Column(DateTime,nullable=False,server_default=func.now())
 
 class FprReason(dbForModel.Model):
-    id           = Column(Integer,primary_key=True,autoincrement=True)
+    id           = Column(Integer,primary_key=True,autoincrement=True,index=True)
     description  = Column(String(255),nullable=False)
     date_created = Column(DateTime,nullable=False,server_default=func.now())
     date_updated = Column(DateTime,onupdate=func.now())
@@ -412,7 +412,7 @@ class FprReason(dbForModel.Model):
 #     trash        = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class FprDevolution(dbForModel.Model):
-    id           = Column(Integer,primary_key=True,autoincrement=True)
+    id           = Column(Integer,primary_key=True,autoincrement=True,index=True)
     date         = Column(Date,nullable=False)
     id_order     = Column(Integer,index=True,comment="Id da tabela B2bOrders")
     status       = Column(SmallInteger,nullable=False,server_default='0',comment="0 - Salvo, 1 - Em processamento, 2 - Totalmente aprovado, 3 - Parcialmente aprovado, 4 - Reprovado")
@@ -421,11 +421,11 @@ class FprDevolution(dbForModel.Model):
     trash        = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class FprDevolutionItem(dbForModel.Model):
-    id_devolution = Column(Integer,primary_key=True,comment="Id da tabela FprDevolution")
-    id_product    = Column(Integer,nullable=False,primary_key=True)
-    id_color      = Column(Integer,primary_key=True,nullable=False)
-    id_size       = Column(Integer,primary_key=True,nullable=False)
-    id_reason     = Column(Integer,primary_key=True,comment="Id da tabela FprReason")
+    id_devolution = Column(Integer,primary_key=True,comment="Id da tabela FprDevolution",index=True)
+    id_product    = Column(Integer,nullable=False,primary_key=True,index=True)
+    id_color      = Column(Integer,primary_key=True,nullable=False,index=True)
+    id_size       = Column(Integer,primary_key=True,nullable=False,index=True)
+    id_reason     = Column(Integer,primary_key=True,index=True,comment="Id da tabela FprReason")
     quantity      = Column(Integer,nullable=False)
     status        = Column(Boolean,nullable=True,comment="Null - Não avaliado, 0 - Rejeitado, 1 - Aceito")
     picture_1     = Column(String(255),nullable=True)
@@ -434,7 +434,7 @@ class FprDevolutionItem(dbForModel.Model):
     picture_4     = Column(String(255),nullable=True)
 
 class ScmCalendar(dbForModel.Model):
-    time_id       = Column(Integer,primary_key=True,autoincrement=True)
+    time_id       = Column(Integer,primary_key=True,autoincrement=True,index=True)
     calendar_date = Column(Date,nullable=False)
     year          = Column(Integer,nullable=False)
     quarter       = Column(Integer,nullable=False)
@@ -443,7 +443,7 @@ class ScmCalendar(dbForModel.Model):
     day_of_week   = Column(Integer,nullable=False)
 
 class ScmEventType(dbForModel.Model):
-    id             = Column(Integer,primary_key=True,autoincrement=True)
+    id             = Column(Integer,primary_key=True,autoincrement=True,index=True)
     id_parent      = Column(Integer,nullable=True)
     name           = Column(String(100),nullable=False)
     hex_color      = Column(String(7),nullable=False)
@@ -456,13 +456,13 @@ class ScmEventType(dbForModel.Model):
     date_updated   = Column(DateTime,onupdate=func.now())
 
 class ScmEvent(dbForModel.Model):
-    id            = Column(Integer,primary_key=True,autoincrement=True)
+    id            = Column(Integer,primary_key=True,autoincrement=True,index=True)
     id_parent     = Column(Integer,nullable=True)
     name          = Column(String(100),nullable=False)
     year          = Column(SmallInteger,nullable=False)
     start_date    = Column(Date,nullable=False)
     end_date      = Column(Date,nullable=True)
-    id_event_type = Column(Integer,nullable=False,comment="Id da tabela ScmEventType")
+    id_event_type = Column(Integer,nullable=False,index=True,comment="Id da tabela ScmEventType")
     id_collection = Column(Integer,nullable=True,comment="Id da tabela B2bCollection")
     budget_value  = Column(DECIMAL(10,2),nullable=True)
     date_created  = Column(DateTime,nullable=False,server_default=func.now())
@@ -470,7 +470,7 @@ class ScmEvent(dbForModel.Model):
     trash         = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class ScmFlimv(dbForModel.Model):
-    id            = Column(Integer,primary_key=True,autoincrement=True)
+    id            = Column(Integer,primary_key=True,autoincrement=True,index=True)
     frequency     = Column(SmallInteger,nullable=False)
     liquidity     = Column(SmallInteger,nullable=False)
     injury        = Column(SmallInteger,nullable=False)
@@ -485,8 +485,8 @@ class ScmFlimv(dbForModel.Model):
 # havendo atualizacao do flimv eh necessario gravar aqui
 class ScmFlimvAudit(dbForModel.Model):
     __tablename__ = "scm_flimv_audit"
-    id            = Column(Integer,primary_key=True,autoincrement=True)
-    flimv_id      = Column(Integer, ForeignKey('scm_flimv.id'))
+    id            = Column(Integer,primary_key=True,autoincrement=True,index=True)
+    flimv_id      = Column(Integer, ForeignKey('scm_flimv.id'),index=True)
     frequency     = Column(SmallInteger,nullable=False)
     liquidity     = Column(SmallInteger,nullable=False)
     injury        = Column(SmallInteger,nullable=False)
@@ -524,9 +524,9 @@ def update_flimv_log(mapper,connection,target):
         action='update'))
 
 class ScmFlimvResult(dbForModel.Model):
-    id            = Column(Integer,primary_key=True,autoincrement=True)
-    id_customer   = Column(Integer,nullable=False,comment="Id da tabela CmmLegalEntities")
-    id_collection = Column(Integer,nullable=False,comment="Id da tabela B2bCollection")
+    id            = Column(Integer,primary_key=True,autoincrement=True,index=True)
+    id_customer   = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmLegalEntities")
+    id_collection = Column(Integer,nullable=False,index=True,comment="Id da tabela B2bCollection")
     frequency     = Column(Boolean,nullable=False)
     liquidity     = Column(SmallInteger,nullable=False)
     injury        = Column(SmallInteger,nullable=False)

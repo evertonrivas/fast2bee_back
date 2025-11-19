@@ -28,6 +28,7 @@ class SysUsers(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
     id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id_customer     = Column(ForeignKey(SysCustomer.id),primary_key=True,nullable=False)
     name            = Column(String(255),nullable=False,comment="Nome do usuário")
     username        = Column(String(100), nullable=False,unique=True)
     email           = Column(String(255),nullable=False,unique=True)
@@ -92,7 +93,7 @@ IDX_USERNAME = Index("IDX_USERNAME",SysUsers.username,unique=True)
 class SysCustomer(dbForModel.Model):
     __bind_key__      = "public"
     __table_args__    = {"schema": "public"}
-    id                = Column(UUID,primary_key=True,default=uuid.uuid4)
+    id                = Column(UUID,primary_key=True,default=uuid.uuid4,index=True)
     name              = Column(String(255),nullable=False)
     taxvat            = Column(String(30),nullable=False,comment="CNPJ no Brasil")
     postal_code       = Column(String(30),nullable=False)
@@ -105,7 +106,7 @@ class SysCustomer(dbForModel.Model):
 class SysPlan(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
-    id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     name            = Column(String(50),nullable=False)
     value           = Column(DECIMAL(10,2),nullable=False)
     adm_licenses    = Column(Integer,nullable=False,default=1,server_default='1',comment="Número de licenças de administrador")
@@ -119,8 +120,8 @@ class SysPlan(dbForModel.Model):
 class SysPayment(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema":"public"}
-    id_customer     = Column(ForeignKey(SysCustomer.id),primary_key=True,nullable=False)
-    id_plan         = Column(ForeignKey(SysPlan.id),primary_key=True,nullable=False)
+    id_customer     = Column(ForeignKey(SysCustomer.id),primary_key=True,nullable=False,index=True)
+    id_plan         = Column(ForeignKey(SysPlan.id),primary_key=True,nullable=False,index=True)
     year            = Column(SmallInteger,primary_key=True,nullable=False)
     month           = Column(SmallInteger,primary_key=True,nullable=False)
     value           = Column(DECIMAL(10,2),nullable=False)
@@ -132,8 +133,8 @@ class SysPayment(dbForModel.Model):
 class SysCustomerPlan(dbForModel.Model):
     __bind_key__      = "public"
     __table_args__    = {"schema": "public"}
-    id_customer       = Column(ForeignKey(SysCustomer.id),primary_key=True,nullable=False)
-    id_plan           = Column(ForeignKey(SysPlan.id),primary_key=True,nullable=False)
+    id_customer       = Column(ForeignKey(SysCustomer.id),primary_key=True,nullable=False,index=True)
+    id_plan           = Column(ForeignKey(SysPlan.id),primary_key=True,nullable=False,index=True)
     activate          = Column(Boolean,nullable=False,server_default='1',default=1,comment="Indica se o plano está ativo")
     activation_date   = Column(Date,nullable=False)
     inactivation_date = Column(Date,nullable=True)
@@ -145,38 +146,38 @@ class SysCustomerPlan(dbForModel.Model):
 class SysCustomerUser(dbForModel.Model):
     __bind_key__   = "public"
     __table_args__ = {"schema": "public"}
-    id_customer    = Column(ForeignKey(SysCustomer.id),primary_key=True,nullable=False)
-    id_user        = Column(ForeignKey(SysUsers.id),primary_key=True,nullable=False)
+    id_customer    = Column(ForeignKey(SysCustomer.id),primary_key=True,nullable=False,index=True)
+    id_user        = Column(ForeignKey(SysUsers.id),primary_key=True,nullable=False,index=True)
 
 
 class SysCountries(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
-    id   = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
+    id   = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     name = Column(String(100),nullable=False)
 
 class SysStateRegions(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
-    id         = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
-    id_country = Column(ForeignKey(SysCountries.id),nullable=False,index=True,comment="Id da tabela SysCountries")
+    id         = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
+    id_country = Column(ForeignKey(SysCountries.id),nullable=False,index=True,comment="Id da tabela SysCountries",index=True)
     name       = Column(String(100),nullable=False)
     acronym    = Column(String(10),nullable=False)
 
 class SysCities(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
-    id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
-    id_state_region = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmStateRegions")
+    id              = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
+    id_state_region = Column(Integer,nullable=False,index=True,comment="Id da tabela CmmStateRegions",index=True)
     name            = Column(String(100),nullable=False)
     brazil_ibge_code= Column(String(10),nullable=True)
 
 class SysCustomerHistory(dbForModel.Model):
     __bind_key__    = "public"
     __table_args__  = {"schema": "public"}
-    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
-    id_user      = Column(ForeignKey(SysUsers.id),nullable=False,index=True,comment="Id do usuário que realizou a ação")
-    id_customer  = Column(ForeignKey(SysCustomer.id),nullable=False,index=True,comment="Id da tabela SysCustomer")
+    id           = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
+    id_user      = Column(ForeignKey(SysUsers.id),nullable=False,index=True,comment="Id do usuário que realizou a ação",index=True)
+    id_customer  = Column(ForeignKey(SysCustomer.id),nullable=False,index=True,comment="Id da tabela SysCustomer",index=True)
     action       = Column(CHAR(2),nullable=False,comment="SA = System Access, DR = Data Registered, DU = Data Updated, DD = Data Deleted")
     history      = Column(String(255),nullable=False,comment="Histórico da ação realizada")
     date_created = Column(DateTime,nullable=False,server_default=func.now())
@@ -184,8 +185,8 @@ class SysCustomerHistory(dbForModel.Model):
 class SysConfig(dbForModel.Model):
     __bind_key__        = "public"
     __table_args__      = {"schema":"public"}
-    id                  = Column(Integer,primary_key=True,nullable=False,autoincrement=True)
-    id_customer         = Column(ForeignKey(SysCustomer.id),nullable=False,unique=True,index=True,comment="Id da tabela SysCustomer")
+    id                  = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
+    id_customer         = Column(ForeignKey(SysCustomer.id),nullable=False,unique=True,index=True,comment="Id da tabela SysCustomer",index=True)
     pagination_size     = Column(SmallInteger,nullable=False,default=0)
     email_brevo_api_key = Column(String(2550),nullable=True)
     email_from_name     = Column(String(200),nullable=False)
