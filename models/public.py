@@ -137,8 +137,8 @@ class SysCustomerPlan(dbForModel.Model):
     activate          = Column(Boolean,nullable=False,server_default='1',default=1,comment="Indica se o plano está ativo")
     activation_date   = Column(Date,nullable=False)
     inactivation_date = Column(Date,nullable=True)
-    payment_model     = Column(CHAR(1),nullable=False,default='M',comment='M = Mensal, Y = Anual')
-    payment_method    = Column(CHAR(1),nullable=False,default='C',comment='C = Credit Card, P = Pix, B = Boleto')
+    payment_model     = Column(CHAR(1),nullable=False,default='T',comment='M = Mensal, Y = Anual, T = Trial')
+    payment_method    = Column(CHAR(1),nullable=False,default='N',comment='C = Credit Card, P = Pix, B = Boleto, N = None')
     date_created      = Column(DateTime,nullable=False,server_default=func.now())
     date_updated      = Column(DateTime,onupdate=func.now())
 
