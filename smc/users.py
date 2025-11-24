@@ -1,3 +1,4 @@
+import requests
 from auth import auth
 from os import environ
 from flask import request
@@ -348,7 +349,11 @@ class UserAuth(Resource):
         # usr = SysUsers.query.filter(and_(SysUsers.username==request.form.get("username"),SysUsers.active==True)).first()
         if usr is not None:
 
-            cfg = db.session.execute(Select(SysConfig).where(SysConfig.id_customer==usr[1].id_customer)).first()
+            #cfg = db.session.execute(Select(SysConfig).where(SysConfig.id_customer==usr[1].id_customer)).first()
+            url =str(environ.get("F2B_SMC_URL"))+"/config/"+str(usr[1].id_customer)
+            cfg_req = requests.get(url)
+            if cfg_req.status_code==HTTPStatus.OK.value:
+                cfg = cfg_req.json()
 
             #verifica a senha criptografada anteriormente
             pwd = str(req["password"]).encode()
@@ -360,21 +365,7 @@ class UserAuth(Resource):
 					"level_access": usr[0].type,
                     "id_user": usr[0].id,
                     "id_profile": str(usr[1].id_customer),
-                    "config":{
-                        "system_pagination_size": 25 if cfg is None else cfg[0].pagination_size,
-                        "use_company_custom": False if cfg is None else cfg[0].company_custom,
-                        "company_name": "" if cfg is None else cfg[0].company_name,
-                        "company_logo": "" if cfg is None else cfg[0].company_logo,
-                        "company_instagram": "" if cfg is None else cfg[0].url_instagram,
-                        "company_facebook": "" if cfg is None else cfg[0].url_facebook,
-                        "company_linkedin": "" if cfg is None else cfg[0].url_linkedin,
-                        "company_max_up_files": 7 if cfg is None else cfg[0].max_upload_files,
-                        "company_max_up_images": 4 if cfg is None else cfg[0].max_upload_images,
-                        "company_use_url_images": False if cfg is None else cfg[0].use_url_images,
-                        "company_dashboard_color": _get_dashboard_config("" if cfg is None else cfg[0].dashboard_config)[1],
-                        "company_dashboard_image": _get_dashboard_config("" if cfg is None else cfg[0].dashboard_config)[0],
-                        "flimv_model": "C" if cfg is None else cfg[0].flimv_model
-                    }
+                    "config": cfg
                 }
                 usr[0].is_authenticate = True
                 db.session.commit()
@@ -575,18 +566,38 @@ ns_user.add_resource(UserNew,'/start')
 class UserPassword(Resource):
     @ns_user.response(HTTPStatus.OK,"Gera uma nova senha padrão para um usuário!")
     @ns_user.response(HTTPStatus.BAD_REQUEST,"Falha ao atualizar!")
-    @auth.login_required
     def put(self):
         try:
             req = request.get_json()
-            pwd = str(environ.get("F2B_TOKEN_KEY")).lower()+str(datetime.now().year)
+            if req["password"] is None:
+                pwd = str(environ.get("F2B_TOKEN_KEY")).lower()+str(datetime.now().year)
+            else:
+                pwd = str(req["password"])
             stmt = Select(SysUsers).where(SysUsers.id==req["id"])
             row = db.session.execute(stmt).first()
             usr: SysUsers | None = row[0] if row is not None else None
             if usr is not None:
-                usr.password = pwd
+                usr.hash_pwd(pwd)
                 db.session.commit()
                 return pwd
+        except exc.SQLAlchemyError as e:
+            return {
+                "error_code": e.code,
+                "error_details": e._message(),
+                "error_sql": e._sql_message()
+            }
+
+    @ns_user.response(HTTPStatus.OK,"Busca o e-mail do usuario!")
+    @ns_user.response(HTTPStatus.BAD_REQUEST,"Falha ao buscar!")    
+    def patch(self):
+        try:
+            req = request.get_json()
+            email = db.session.execute(Select(SysUsers.email).where(SysUsers.id==req["id_user"])).first()
+            if email is not None:
+                return {
+                    "email": email.email
+                }
+            return None
         except exc.SQLAlchemyError as e:
             return {
                 "error_code": e.code,
@@ -605,7 +616,7 @@ class UserPassword(Resource):
             # porem o usuario tambem pode ser desativado diretamente no cadastro de 
             # usuarios
             exist = db.session.execute(
-                Select(SysUsers.email,SysUsers.name,SysConfig.email_brevo_api_key)\
+                Select(SysUsers.id,SysUsers.email,SysUsers.name,SysConfig.email_brevo_api_key,SysCustomerUser.id_customer)\
                 .join(SysCustomerUser,SysCustomerUser.id_user==SysUsers.id)\
                 .join(SysConfig,SysConfig.id_customer==SysCustomerUser.id_customer)\
                 .where(and_(
@@ -615,12 +626,14 @@ class UserPassword(Resource):
             ).first()
             if exist is not None:
                 sended = _send_email(
+                    str(exist.id),
                     [exist.email],
                     [],
                     "Fast2bee - Recuperação de Senha",
                     exist.name,
                     MailTemplates.PWD_RECOVERY,
-                    exist.email_brevo_api_key)
+                    exist.email_brevo_api_key,
+                    customer_id=str(exist.id_customer)+"/")
                 return sended
         except exc.SQLAlchemyError as e:
             return {
