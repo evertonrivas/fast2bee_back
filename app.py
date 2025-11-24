@@ -28,8 +28,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True
 }
 app.config['SQLALCHEMY_BINDS'] = {
-    "public": str(environ.get("F2B_DB_LIB"))+"://"+str(environ.get("F2B_DB_USER"))+":"+\
-    str(environ.get("F2B_DB_PASS"))+"@"+str(environ.get("F2B_DB_HOST"))+"/"+str(environ.get("F2B_DB_NAME"))
+    "public": app.config["SQLALCHEMY_DATABASE_URI"]
 }
 
 db.init_app(app)
