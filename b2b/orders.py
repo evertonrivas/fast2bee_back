@@ -465,16 +465,11 @@ class HistoryOrderList(Resource):
                 ))
                     
             track_order = False
-            if "Authorization" in request.headers:
-                tkn = request.headers["Authorization"].replace("Bearer ","")
-                if tkn is not None:
-                    token = _extract_token(tkn)
-                    if token is not None:
-                        url =str(environ.get("F2B_SMC_URL"))+"/configuration/"+str(token["profile"])
-                        cfg_req = requests.get(url)
-                        if cfg_req.status_code==HTTPStatus.OK.value:
-                            cfg = cfg_req.json()
-                            track_order = bool(cfg["track_orders"])
+            url =str(environ.get("F2B_SMC_URL"))+"/config/"+str(request.headers.get("x-customer"))
+            cfg_req = requests.get(url)
+            if cfg_req.status_code==HTTPStatus.OK.value:
+                cfg = cfg_req.json()
+                track_order = bool(cfg["track_orders"])
 
             # _show_query(stmt)
             
