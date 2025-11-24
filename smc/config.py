@@ -1,6 +1,7 @@
 # from auth import auth
 from flask import request
 from http import HTTPStatus
+from f2bconfig import DashboardImage, DashboardImageColor
 from models.helpers import db # , _get_params
 from sqlalchemy import Select, exc
 from models.public import SysConfig
@@ -141,8 +142,29 @@ class ConfigApi(Resource):
                     "error_sql": ""
                 }, HTTPStatus.BAD_REQUEST
             else:
+                if cfg[0].dashboard_config=='M':
+                    dash_image = DashboardImage.MEN.value
+                    dash_color = DashboardImageColor.MEN.value
+                if cfg[0].dashboard_config=='W':
+                    dash_image = DashboardImage.WOMEN.value
+                    dash_color = DashboardImageColor.WOMEN.value
+                if cfg[0].dashboard_config=='H':
+                    dash_image = DashboardImage.WHEAT.value
+                    dash_color = DashboardImageColor.WHEAT.value
+                if cfg[0].dashboard_config=='D':
+                    dash_image = DashboardImage.DRINK.value
+                    dash_color = DashboardImageColor.DRINK.value
+                if cfg[0].dashboard_config=='S':
+                    dash_image = DashboardImage.SHOES.value
+                    dash_color = DashboardImageColor.SHOES.value
+                if cfg[0].dashboard_config=='P':
+                    dash_image = DashboardImage.PISTON.value
+                    dash_color = DashboardImageColor.PISTON.value
+                if cfg[0].dashboard_config=='F':
+                    dash_image = DashboardImage.PHARMA.value
+                    dash_color = DashboardImageColor.PHARMA.value
+                
                 return {
-                    "id": cfg[0].id,
                     "id_customer": str(cfg[0].id_customer),
                     "pagination_size": cfg[0].pagination_size,
                     "email_brevo_api_key": cfg[0].email_brevo_api_key,
@@ -150,6 +172,8 @@ class ConfigApi(Resource):
                     "email_from_value": cfg[0].email_from_value,
                     "flimv_model": cfg[0].flimv_model,
                     "dashboard_config": cfg[0].dashboard_config,
+                    "dashboard_image": dash_image,
+                    "dashboard_color": dash_color,
                     "ai_model": cfg[0].ai_model,
                     "ai_api_key": cfg[0].ai_api_key,
                     "company_custom": cfg[0].company_custom,
@@ -161,7 +185,15 @@ class ConfigApi(Resource):
                     "max_upload_files": cfg[0].max_upload_files,
                     "max_upload_images": cfg[0].max_upload_images,
                     "use_url_images": cfg[0].use_url_images,
-                    "track_orders": cfg[0].track_orders
+                    "track_orders": cfg[0].track_orders,
+                    "erp_integration": cfg[0].erp_integration,
+                    "erp_url": cfg[0].erp_url,
+                    "erp_token": cfg[0].erp_token,
+                    "erp_grant_type": cfg[0].erp_grant_type,
+                    "erp_client_id": cfg[0].erp_client_id,
+                    "erp_client_secret": cfg[0].erp_client_secret,
+                    "erp_username": cfg[0].erp_username,
+                    "erp_password": cfg[0].erp_password
                 }
         except exc.SQLAlchemyError as e:
             return {
