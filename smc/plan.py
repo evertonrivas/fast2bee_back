@@ -1,9 +1,11 @@
+import simplejson
 from auth import auth
 from os import environ
 from flask import request
+from decimal import Decimal
 from http import HTTPStatus
 from datetime import datetime
-from models.public import SysPlan
+from models.public import SysCustomerPlan, SysPlan
 from models.helpers import _get_params, db
 from sqlalchemy import Select, exc, asc, desc
 from flask_restx import Resource, Namespace, fields
@@ -227,3 +229,46 @@ class PaymentApi(Resource):
                 "error_details": e._message(),
                 "error_sql": e._sql_message()
             }
+        
+
+class CustomerPlan(Resource):
+    @ns_plan.response(HTTPStatus.OK,"Retorna o total de Usuarios por tipo")
+    @ns_plan.response(HTTPStatus.BAD_REQUEST,"Registro não encontrado!")
+    @auth.login_required
+    def get(self):
+        try:
+            stmt = Select(
+                SysPlan.name,
+                SysPlan.adm_licenses,
+                SysPlan.repr_licenses,
+                SysPlan.store_licenses,
+                SysPlan.istore_licenses,
+                SysPlan.user_licenses,
+                SysPlan.value).join(SysCustomerPlan,SysCustomerPlan.id_plan==SysPlan.id)\
+                .where(SysCustomerPlan.id_customer==request.headers.get("x-customer",None))
+            row = db.session.execute(stmt).first()
+            if row is None: 
+                return{
+                    "error_code": HTTPStatus.BAD_REQUEST,
+                    "error_details": "Plano não encontrado!",
+                    "error_sql": ""
+                },HTTPStatus.BAD_REQUEST
+            else:
+                return{
+                    "name": row.name,
+                    "adm_licenses": row.adm_licenses,
+                    "repr_licenses": row.repr_licenses,
+                    "store_licenses": row.store_licenses,
+                    "istore_licenses": row.istore_licenses,
+                    "user_licenses": row.user_licenses,
+                    "value": simplejson.dumps(Decimal(row.value))
+                }
+        except exc.SQLAlchemyError as e:
+            return {
+                "error_code": e.code,
+                "error_details": e._message(),
+                "error_sql": e._sql_message()
+            }
+    
+ 
+ns_plan.add_resource(CustomerPlan,'/my-plan/')
