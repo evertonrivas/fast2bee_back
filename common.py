@@ -5,10 +5,12 @@ import logging
 import requests
 from os import environ
 from flask import request
+from http import HTTPStatus
 from random import seed,randint
-from models.public import SysUsers
-from models.helpers import Database
+from models.public import SysUsers, SysConfig
+from models.helpers import Database, db
 from f2bconfig import EntityAction, MailTemplates, DashboardImage, DashboardImageColor
+from sqlalchemy import Select
 
 def _before_execute(check:bool = False):
     # apenas no common serah verificada a existencia do auth
@@ -121,7 +123,7 @@ def _gen_report(fileName:str,_content:dict):
         logging.error(e)
         return False
 
-def _send_email(p_to:list,p_cc:list,p_subject:str,p_content:str,p_tpl:MailTemplates,brevo_key:str,p_attach:list|None=None)->bool:
+def _send_email(customer_id:str,p_to:list,p_cc:list,p_subject:str,p_content:str,p_tpl:MailTemplates,brevo_key:str,p_attach:list|None=None,)->bool:
     try:
         tplLoader     = jinja2.FileSystemLoader(searchpath=str(environ.get("F2B_APP_PATH"))+'assets/layout/')
         tplEnv        = jinja2.Environment(loader=tplLoader)
@@ -129,14 +131,16 @@ def _send_email(p_to:list,p_cc:list,p_subject:str,p_content:str,p_tpl:MailTempla
         mailTemplate  = tplEnv.get_template(layoutFile)
         mail_template = mailTemplate.render(
             content=p_content,
-            url=(str(environ.get("F2B_APP_URL"))) +('reset-password/' if p_tpl==MailTemplates.PWD_RECOVERY else "")
+            url=(str(environ.get("F2B_APP_URL"))) +('reset-password/'+customer_id if p_tpl==MailTemplates.PWD_RECOVERY else "")
         )
+
+        user = db.session.execute(Select(SysConfig.email_from_name,SysConfig.email_from_value).where(SysConfig.id_customer==customer_id)).first()
 
         if p_attach is not None:
             json_content= {
                 "sender": {
-                    "name": str(environ.get("F2B_EMAIL_FROM_NAME")),
-                    "email": str(environ.get("F2B_EMAIL_FROM_VALUE"))
+                    "name": str(user.email_from_name),
+                    "email": str(user.email_from_value)
                 },
                 "to": [{
                     "email": one_to.split()
@@ -172,7 +176,7 @@ def _send_email(p_to:list,p_cc:list,p_subject:str,p_content:str,p_tpl:MailTempla
             'content-type': 'application/json',
             'api-key': brevo_key
         })
-        if resp.status_code==200:
+        if resp.status_code==HTTPStatus.OK.value:
             return True
         return False
     except Exception as e:
