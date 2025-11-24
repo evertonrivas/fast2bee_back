@@ -38,9 +38,18 @@ class AiApi(Resource):
                         if resp.status_code==HTTPStatus.OK.value:
                             cfg = resp.json()
 
-                            class_name = str(cfg.ai_model).replace("_"," ").title().replace(" ","")
+                            model = 'chatgpt'
+                            if cfg.ai_model == 'C':
+                                model = 'chatgpt'
+                            elif cfg.ai_model == 'G':
+                                model = 'gemini'
+                            elif cfg.ai_model == 'D':
+                                model = 'deepseek'
+                            
+
+                            class_name = str(model).replace("_"," ").title().replace(" ","")
                             AI_OBJ = getattr(
-                            importlib.import_module('integrations.ai.'+str(cfg.ai_model)),
+                            importlib.import_module('integrations.ai.'+str(model)),
                             class_name
                             )
                             ai = AI_OBJ(cfg.ai_api_key)
