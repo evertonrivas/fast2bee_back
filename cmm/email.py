@@ -25,8 +25,10 @@ class EmailApi(Resource):
             req = request.get_json()
             attachs = []
 
+            id_customer = str(request.headers.get("x-customer"))
+
             # get brevo API Key
-            brevo_key = db.session.execute(Select(SysConfig.email_brevo_api_key).where(SysConfig.id_customer==str(request.headers.get("x-customer")))).first()
+            brevo_key = db.session.execute(Select(SysConfig.email_brevo_api_key).where(SysConfig.id_customer==id_customer)).first()
             if brevo_key is None:
                 return False
 
@@ -44,6 +46,7 @@ class EmailApi(Resource):
                         "content": content
                     })
             if _send_email(
+                id_customer,
                 req['to'],
                 [],
                 req['subject'],
