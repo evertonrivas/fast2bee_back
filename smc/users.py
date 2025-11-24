@@ -605,18 +605,18 @@ class UserPassword(Resource):
             # porem o usuario tambem pode ser desativado diretamente no cadastro de 
             # usuarios
             exist = db.session.execute(
-                Select(SysUsers.username,SysUsers.name)\
+                Select(SysUsers.email,SysUsers.name)\
                 .where(and_(
                     SysUsers.active.is_(True),
-                    SysUsers.username==req["email"]
+                    SysUsers.email==req["email"]
                 ))
             ).first()
             if exist is not None:
                 sended = _send_email(
-                    exist.value,
+                    exist.email,
                     [],
                     "Fast2bee - Recuperação de Senha",
-                    exist.fantasy_name,
+                    exist.name,
                     MailTemplates.PWD_RECOVERY)
                 return sended
         except exc.SQLAlchemyError as e:
