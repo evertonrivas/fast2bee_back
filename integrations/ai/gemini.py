@@ -9,13 +9,13 @@ class Gemini(ArtificialInteligence):
     
     def suggest_email(self, subject: str,type:str):
         if type=="M":
-            question = "Melhore o texto para que possa ser enviado um e-mail para cada cliente da minha lista de contatos.\n "+subject
+            question = "Melhore o texto para que tenha uma linguagem mais profissional e possa ser enviado por e-mail para cada cliente da minha lista de contatos.\n "+subject
         elif type=="A":
-            question = "Crie um texto de apresentação de produtos para ser enviado por e-mail à cada cliente da minha lista de contatos. O texto será baseado no que já tenho logo abaixo.\n"+subject
+            question = "Crie um texto de apresentação profissional de produtos para ser enviado por e-mail à cada cliente da minha lista de contatos. O texto será baseado no que já tenho logo abaixo.\n"+subject
         elif type=="P":
             question = "Crie uma proposta de venda de produtos para ser enviada por e-mail à cada cliente da minha lista. A proposta terá como premissas: "+subject
         elif type=="O":
-            question = "Crie um exemplo de orçamento para que seja enviada por e-mail à cada cliente da minha lista com base nos seguintes dados: "+subject+ " coloque os produtos em uma tabela HTML sem bordas e com cabeçalho em negrito"
+            question = "Crie um exemplo de orçamento para que seja enviada por e-mail à cada cliente da minha lista com base nos seguintes dados: "+subject+ " coloque os produtos em uma tabela HTML sem bordas e com cabeçalho em negrito."
         
         # content = self.ai_model.generate_content(question).text
         content = self.ai_model.models.generate_content(
