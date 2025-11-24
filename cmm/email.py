@@ -8,6 +8,9 @@ from common import _send_email
 from werkzeug import exceptions
 from f2bconfig import MailTemplates
 from flask_restx import Resource,Namespace
+from sqlalchemy import Select
+from models.helpers import db
+from models.public import SysConfig
 
 ns_email = Namespace("email",description="Operações para manipular upload de dados")
 
@@ -22,6 +25,11 @@ class EmailApi(Resource):
             req = request.get_json()
             attachs = []
 
+            # get brevo API Key
+            brevo_key = db.session.execute(Select(SysConfig.email_brevo_api_key).where(SysConfig.id_customer==str(request.headers.get("x-customer")))).first()
+            if brevo_key is None:
+                return False
+
             #verifica se os arquivos existem
             fpath = str(os.environ.get("F2B_APP_PATH"))+'assets/tmp/'
             for file in req['attachments']:
@@ -35,7 +43,14 @@ class EmailApi(Resource):
                         "type": mimetypes.guess_type(fpath+file),
                         "content": content
                     })
-            if _send_email(req['to'],[],req['subject'],req['content'],MailTemplates.DEFAULT,attachs) is True:
+            if _send_email(
+                req['to'],
+                [],
+                req['subject'],
+                req['content'],
+                MailTemplates.DEFAULT,
+                brevo_key.email_brevo_api_key,
+                attachs) is True:
                 #limpa os arquivos do tmp
                 for file in req["attachments"]:
                     os.remove(fpath+file)
