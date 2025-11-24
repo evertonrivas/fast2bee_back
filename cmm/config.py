@@ -35,33 +35,29 @@ class ConfigList(Resource):
     @ns_config.response(HTTPStatus.BAD_REQUEST,"Falha ao listar registros!")
     def get(self):
         try:
-            auth_exist = "Authorization" in request.headers
-            tkn = str(request.headers.get("Authorization")).replace("Bearer ","") if auth_exist else ""
-            token = _extract_token(tkn)
-            if token is not None:
-                resp = requests.get(str(environ.get("F2B_SMC_URL"))+"config/"+str(token["profile"]))
-                if resp.status_code == HTTPStatus.OK.value:
-                    cfg = resp.json()
-                    return {
-                        "ai_model": cfg["ai_model"],
-                        "ai_api_key": cfg["ai_api_key"],
-                        "company_custom": cfg["company_custom"],
-                        "company_name": cfg["company_name"],
-                        "company_logo": cfg["company_logo"],
-                        "url_instagram": cfg["url_instagram"],
-                        "url_facebook": cfg["url_facebook"],
-                        "url_linkedin": cfg["url_linkedin"],
-                        "pagination_size": cfg["pagination_size"],
-                        "email_brevo_api_key": cfg["email_brevo_api_key"],
-                        "email_from_name": cfg["email_from_name"],
-                        "email_from_value": cfg["email_from_value"]
-                    }
-                else:
-                    return {
-                        "error_code": HTTPStatus.BAD_REQUEST.value,
-                        "error_details": "Impossível buscar as configurações!",
-                        "error_sql": ""
-                    }, HTTPStatus.BAD_REQUEST
+            resp = requests.get(str(environ.get("F2B_SMC_URL"))+"config/"+str(request.headers.get("x-customer")))
+            if resp.status_code == HTTPStatus.OK.value:
+                cfg = resp.json()
+                return {
+                    "ai_model": cfg["ai_model"],
+                    "ai_api_key": cfg["ai_api_key"],
+                    "company_custom": cfg["company_custom"],
+                    "company_name": cfg["company_name"],
+                    "company_logo": cfg["company_logo"],
+                    "url_instagram": cfg["url_instagram"],
+                    "url_facebook": cfg["url_facebook"],
+                    "url_linkedin": cfg["url_linkedin"],
+                    "pagination_size": cfg["pagination_size"],
+                    "email_brevo_api_key": cfg["email_brevo_api_key"],
+                    "email_from_name": cfg["email_from_name"],
+                    "email_from_value": cfg["email_from_value"]
+                }
+            else:
+                return {
+                    "error_code": HTTPStatus.BAD_REQUEST.value,
+                    "error_details": "Impossível buscar as configurações!",
+                    "error_sql": ""
+                }, HTTPStatus.BAD_REQUEST
         except exc.SQLAlchemyError as e:
             return {
                 "error_code": e.code,
@@ -73,14 +69,10 @@ class ConfigList(Resource):
     @ns_config.response(HTTPStatus.BAD_REQUEST,"Falha ao listar registros!")
     def post(self):
         try:
-            if "Authorization" in request.headers:
-                tkn = str(request.headers.get("Authorization")).replace("Bearer ","")
-                if tkn is not None:
-                    token = _extract_token(tkn)
-                    if token is not None:
-                        resp = requests.post(str(environ.get("F2B_SMC_URL"))+"config/"+str(token["profile"]),json=request.get_json())
-                        if resp.status_code == HTTPStatus.OK.value:
-                            return True
+            url = str(environ.get("F2B_SMC_URL"))+"config/"+str(request.headers.get("x-customer"))
+            resp = requests.post(url,json=request.get_json())
+            if resp.status_code == HTTPStatus.OK.value:
+                return True if resp.text.replace("\n","")=="true" else False
         except exc.SQLAlchemyError as e:
             return {
                 "error_code": e.code,
