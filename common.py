@@ -121,7 +121,7 @@ def _gen_report(fileName:str,_content:dict):
         logging.error(e)
         return False
 
-def _send_email(p_to:list,p_cc:list,p_subject:str,p_content:str,p_tpl:MailTemplates,p_attach:list|None=None)->bool:
+def _send_email(p_to:list,p_cc:list,p_subject:str,p_content:str,p_tpl:MailTemplates,brevo_key:str,p_attach:list|None=None)->bool:
     try:
         tplLoader     = jinja2.FileSystemLoader(searchpath=str(environ.get("F2B_APP_PATH"))+'assets/layout/')
         tplEnv        = jinja2.Environment(loader=tplLoader)
@@ -170,7 +170,7 @@ def _send_email(p_to:list,p_cc:list,p_subject:str,p_content:str,p_tpl:MailTempla
         resp = requests.post("https://api.brevo.com/v3/smtp/email",json=json_content,headers={
             'accept':'application/json',
             'content-type': 'application/json',
-            'api-key': str(environ.get("F2B_BREVO_API_KEY"))
+            'api-key': brevo_key
         })
         if resp.status_code==200:
             return True
