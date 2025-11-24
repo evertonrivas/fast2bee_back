@@ -76,8 +76,8 @@ class LegalEntityType(Enum):
     PERSON         = 'P'
 
 class FlimvModel(Enum):
-    FLIMVS = "FLIMVS" # seasonal
-    FLIMVC = "FLIMVC" # continuous
+    FLIMVS = "S" # seasonal
+    FLIMVC = "C" # continuous
 
 class ComissionType(Enum):
     FIXED      = 'F'
