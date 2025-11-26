@@ -87,8 +87,7 @@ def _register_customer(
 
             # cria o schema do novo cliente
             tenant = Database(str(customer.id))
-            tenant.create_schema()
-            tenant.create_tables()
+            tenant.create_tenant_schema()
 
             start_date = str(datetime.now().year)+"-01-01"
             end_date   = str(datetime.now().year+50)+"-12-31" # correcao na data final para o fim do ano
