@@ -39,20 +39,20 @@ try:
             conn.execute(text("SELECT 1"))
             conn.close()
 
-        #se nao existirem as tabelas tenta cria-las
-        db.create_all("public")
+        # #se nao existirem as tabelas tenta cria-las
+        # db.create_all("public")
 
-        # atualiza os tenants
-        tenants = db.session.execute(Select(SysCustomer.id)).all()
-        for tenant in tenants:
-            schema = str(tenant.id)
-            db.session.execute(text(f'set search_path to "{schema}"'))
-            db.session.commit()
-            db.metadata.create_all(
-                db.engine.execution_options(
-                    schema_translate_map={None:schema}
-                )
-            )
+        # # atualiza os tenants
+        # tenants = db.session.execute(Select(SysCustomer.id)).all()
+        # for tenant in tenants:
+        #     schema = str(tenant.id)
+        #     db.session.execute(text(f'set search_path to "{schema}"'))
+        #     db.session.commit()
+        #     db.metadata.create_all(
+        #         db.engine.execution_options(
+        #             schema_translate_map={None:schema}
+        #         )
+        #     )
 
 except Exception as e:
     print(e)
@@ -61,7 +61,7 @@ except Exception as e:
     print("###################################################")
     quit()
 
-migrate.init_app(app,db)
+migrate.init_app(app, db)
 
 app.register_blueprint(bp_cmm)
 app.register_blueprint(bp_crm)
