@@ -214,6 +214,7 @@ class SysConfig(dbForModel.Model):
     use_url_images      = Column(Boolean,nullable=False,default=False)
     track_orders        = Column(Boolean,nullable=False,default=False)
     erp_integration     = Column(Boolean,nullable=False,default=False)
+    erp_module          = Column(String(100),nullable=True)
     erp_url             = Column(String(255),nullable=True)
     erp_token           = Column(String(255),nullable=True)
     erp_grant_type      = Column(String(100),nullable=True)
