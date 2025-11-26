@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from sqlalchemy import Insert, create_engine, Select
 from os import environ, path, listdir, remove
 from concurrent.futures import ThreadPoolExecutor
-from models.public import SysCustomer
+from models.public import SysCustomer, SysConfig
 from models.tenant import CmmLegalEntityImport, CmmProductsImport
 
 
@@ -25,33 +25,34 @@ db = create_engine(conn)
 with db.connect() as connection:
     try:
         # verifica se a tabela de importacao de produtos existe, senao cria
-        all_active_customers = connection.execute(Select(SysCustomer.id).where(SysCustomer.churn.is_(False)))
+        all_active_customers = connection.execute(Select(SysCustomer.id,SysConfig.erp_integration,SysConfig.erp_module).where(SysCustomer.churn.is_(False)))
     except Exception as e:
         logging.error(e)
 
 
 # esse eh o job de carga do ERP que eh executado de hora em hora
 if datetime.now().strftime("%M")=="00":
-    if int(str(environ.get("F2B_CONNECT_ERP")))==1:
-        module = str(environ.get("F2B_ERP_MODULE"))
-        class_name = str(environ.get("F2B_ERP_MODULE")).replace("_"," ").title().replace(" ","")
-        ERP = getattr(
-            importlib.import_module('integrations.erp.'+module),
-            class_name
-        )
-        for customer in all_active_customers:
-            # cria uma instancia do ERP para cada cliente
-            erp = ERP(customer.id)
+    for customer in all_active_customers:
+        if customer.erp_integration==True:
+            module = str(customer.erp_module)
+            class_name = str(customer.erp_module).replace("_"," ").title().replace(" ","")
+            ERP = getattr(
+                importlib.import_module('integrations.erp.'+module),
+                class_name
+            )
 
-            erp.get_representative()
-            erp.get_customer()
-            erp.get_order()
-            erp.get_invoice()
-            erp.get_payment_conditions()
-            erp.get_products()
-            erp.get_bank_slip()
-            erp.get_measure_unit()
-            erp.create_order()
+        # cria uma instancia do ERP para cada cliente
+        erp = ERP(customer.id)
+
+        erp.get_representative()
+        erp.get_customer()
+        erp.get_order()
+        erp.get_invoice()
+        erp.get_payment_conditions()
+        erp.get_products()
+        erp.get_bank_slip()
+        erp.get_measure_unit()
+        erp.create_order()
 
 # esse eh o job que atualiza as informacoes do FLIMV a cada dia sempre as 1h
 # if datetime.now().strftime("%H%M")=="0100":
