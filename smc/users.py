@@ -550,7 +550,7 @@ class UserNew(Resource):
 
                 usrE = SysCustomerUser()
                 usrE.id_user = usr.id
-                usrE.id_customer = req["id_customer"]
+                usrE.id_customer = req["customer_id"]
                 db.session.add(usrE)
                 db.session.commit()
 
