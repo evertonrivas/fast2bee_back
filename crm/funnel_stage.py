@@ -235,7 +235,7 @@ class FunnelStageApi(Resource):
                 "color": reg.color,
                 "order": reg.order,
                 "date_created": reg.date_created.strftime("%Y-%m-%d %H:%M:%S"),
-                "date_updated": None if reg.date_updated is not None else reg.date_updated.strftime("%Y-%m-%d %H:%M:%S"),
+                "date_updated": None if reg.date_updated is None else reg.date_updated.strftime("%Y-%m-%d %H:%M:%S"),
                 "trash": reg.trash
             }
         except exc.SQLAlchemyError as e:
