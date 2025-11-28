@@ -332,7 +332,7 @@ class CartTotal(Resource):
                 .join(B2bCustomerGroup,B2bCustomerGroup.id==B2bCustomerGroupCustomers.id_customer_group))
             )
         else:
-            id_entity = int(str(request.headers.get("x-store")))
+            id_entity = int(str(request.headers.get("x-entity")))
             query = query.where(B2bCartShopping.id_customer==id_entity)
 
         #zera o SQL se for admin
