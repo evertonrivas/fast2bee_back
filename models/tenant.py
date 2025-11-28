@@ -6,6 +6,8 @@ from models.helpers import db as dbForModel
 from sqlalchemy import ForeignKey, event, func, Column
 from sqlalchemy import String, Integer, CHAR, DateTime, Boolean, Text, DECIMAL, SmallInteger, Date
 
+from models.public import SysUsers
+
 BASEDIR = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(BASEDIR, '.env'))
 
@@ -124,6 +126,7 @@ class CmmMeasureUnit(dbForModel.Model):
 class CmmLegalEntities(dbForModel.Model):
     id                = Column(Integer,primary_key=True,nullable=False,autoincrement=True,index=True)
     origin_id         = Column(Integer,nullable=True,comment="Utilizado em caso de importacao")
+    id_user           = Column(ForeignKey(SysUsers.id),nullable=True,comment="Para detectar os representantes e lojistas")
     name              = Column(String(255),nullable=False)
     fantasy_name      = Column(String(255),nullable=False)
     taxvat            = Column(String(30),nullable=True,comment="CPF ou CNPJ no Brasil, pode ser nullo por conta de prospeccao")
@@ -233,7 +236,7 @@ class B2bBrand(dbForModel.Model):
     trash         = Column(Boolean,nullable=False,server_default='0',default=0)
 
 class B2bCartShopping(dbForModel.Model):
-    id_customer = Column(Integer,primary_key=True,index=True)
+    id_customer = Column(Integer,primary_key=True,index=True,comment="id_legal_entitie do tipo lojista")
     id_product  = Column(Integer,primary_key=True,index=True)
     id_color    = Column(Integer,primary_key=True,index=True)
     id_size     = Column(Integer,primary_key=True,index=True)
