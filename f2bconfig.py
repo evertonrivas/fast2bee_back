@@ -75,6 +75,16 @@ class LegalEntityType(Enum):
     SUPPLIER       = 'S'
     PERSON         = 'P'
 
+# E = E-mail, P = Phone, L = Linkedin, I = Instagram, W = Website, B = Blog, S = Social Media
+class LegalEntityContactType(Enum):
+    EMAIL        = 'E'
+    PHONE        = 'P'
+    LINKEDIN     = 'L'
+    INSTAGRAM    = 'I'
+    WEBSITE      = 'W'
+    BLOG         = 'B'
+    SOCIAL_MEDIA = 'S'
+
 class FlimvModel(Enum):
     FLIMVS = "S" # seasonal
     FLIMVC = "C" # continuous
