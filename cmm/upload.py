@@ -121,6 +121,8 @@ class UploadDevolution(Resource):
             files = []
             #obtem os arquivos para upload
             fpath = str(os.environ.get("F2B_APP_PATH"))+'assets/tmp/'
+            if os.path.exists(fpath)==False:
+                os.mkdir(fpath)
             file_count = 1
             for file in request.files.getlist('files[]'):
                 parts = str(file.filename).split(".")
@@ -146,6 +148,8 @@ class UploadImport(Resource):
             files = []
             #obtem os arquivos para upload
             fpath = str(os.environ.get("F2B_APP_PATH"))+'assets/import/'
+            if os.path.exists(fpath)==False:
+                os.mkdir(fpath)
             for file in request.files.getlist('files[]'):
                 parts = str(file.filename).split(".")
                 ext = parts[len(parts)-1]
@@ -171,6 +175,8 @@ class UploadProduct(Resource):
             for file in request.files.getlist('files[]'):
                 if os.environ.get("F2B_COMPANY_UPLOAD_IMAGE")=="local":
                     fpath = str(os.environ.get("F2B_APP_PATH"))+'assets/images/'
+                    if os.path.exists(fpath)==False:
+                        os.mkdir(fpath)
                     parts = str(file.filename).split(".")
                     ext = parts[len(parts)-1]
                     newFileName = "product_"+datetime.now().strftime("%Y%m%d-%H%M%S")+"."+ext
