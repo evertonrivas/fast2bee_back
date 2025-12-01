@@ -1,9 +1,11 @@
+import os
+import csv
 from auth import auth
-from os import environ
+from pathlib import Path
 from flask import request
 from http import HTTPStatus
 from datetime import datetime
-from f2bconfig import EntityAction
+from f2bconfig import EntityAction, LegalEntityContactType
 from models.helpers import _get_params, db
 from models.tenant import CmmLegalEntities
 from models.tenant import CmmLegalEntityContact
@@ -74,7 +76,7 @@ class EntitysList(Resource):
     @auth.login_required
     def get(self):
         pag_num   = 1 if request.args.get("page") is None else int(str(request.args.get("page")))
-        pag_size  = int(str(environ.get("F2B_PAGINATION_SIZE"))) if request.args.get("pageSize") is None else int(str(request.args.get("pageSize")))
+        pag_size  = int(str(os.environ.get("F2B_PAGINATION_SIZE"))) if request.args.get("pageSize") is None else int(str(request.args.get("pageSize")))
         search    = "" if request.args.get("query") is None else request.args.get("query")
 
         try:
@@ -594,7 +596,7 @@ class EntityOfStage(Resource):
     @auth.login_required
     def get(self,id:int):
         pag_num   = 1 if request.args.get("page") is None else int(str(request.args.get("page")))
-        pag_size  = int(str(environ.get("F2B_PAGINATION_SIZE"))) if request.args.get("pageSize") is None else int(str(request.args.get("pageSize")))
+        pag_size  = int(str(os.environ.get("F2B_PAGINATION_SIZE"))) if request.args.get("pageSize") is None else int(str(request.args.get("pageSize")))
 
         try:
             params = _get_params(request.args.get("query"))
@@ -825,7 +827,7 @@ class EntityHistory(Resource):
     @auth.login_required
     def get(self,id:int):
         pag_num   = 1 if request.args.get("page") is None or request.args.get("page")==0 else int(str(request.args.get("page")))
-        pag_size  = int(str(environ.get("F2B_PAGINATION_SIZE"))) if request.args.get("pageSize") is None else int(str(request.args.get("pageSize")))
+        pag_size  = int(str(os.environ.get("F2B_PAGINATION_SIZE"))) if request.args.get("pageSize") is None else int(str(request.args.get("pageSize")))
         search    = "" if request.args.get("query") is None else request.args.get("query")
         try:
             params = _get_params(search)
@@ -893,10 +895,75 @@ class EntityImport(Resource):
     @ns_legal.response(HTTPStatus.BAD_REQUEST,"Falha ao processar registros")
     def post(self):
         try:
-            pass
+            customer    = request.headers.get("x-customer")
+
+            #varre o diretorio atras dos arquivos do customer
+            str_path = str(os.environ.get("F2B_APP_PATH"))+'assets/import/'
+            path = Path(str_path)
+            for file in list(path.rglob("*.csv")):
+                if file.name.find(customer)!=-1:
+                    "extract data from file name"
+                    data = file.name.split("_")
+                    # tipo de cadastro
+                    # data[2]
+
+                    with open(str_path+file.name,mode='r',newline='',encoding="utf-8") as f:
+                        reader = csv.reader(f)
+                        for row in reader:
+                            if reader.line_num > 1:
+                                self.__import(row,data[2])
+
+                    # apaga o arquivo apos importacao
+                    if os.path.exists(str_path+file.name)==True:
+                        os.remove(str_path+file.name)
+            
+            return True
         except exc.SQLAlchemyError as e:
             return {
                 "error_code": e.code,
                 "error_details": e._message(),
                 "error_sql": e._sql_message()
             }
+        
+    def __import(self,reg:list,type:str) -> bool:
+                
+        ent = CmmLegalEntities()
+        ent.origin_id    = reg[0]
+        ent.taxvat       = reg[1]
+        ent.name         = reg[2]
+        ent.fantasy_name = reg[3]
+        ent.type         = type
+
+        city = db.session.execute(Select(SysCities.id).where(func.upper(SysCities.name)==str(reg[4]).upper())).first()
+        ent.id_city         = 0 if city is None else city.id
+        ent.postal_code     = str(reg[5]).replace("-","").replace(" ","")
+        ent.neighborhood    = str(reg[6]).upper()
+        ent.address         = str(reg[7]).upper()
+        ent.activation_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        db.session.add(ent)
+        db.session.commit()
+
+        ent_ct = CmmLegalEntityContact()
+        ent_ct.id_legal_entity = ent.id
+        ent_ct.name            = str(reg[8])
+        ent_ct.contact_type    = LegalEntityContactType.PHONE.value
+        ent_ct.value           = str(reg[9]).replace(" ","").replace("-","").replace("(","").replace(")","") # se for telefone pode remover tracos e parenteses
+        ent_ct.is_whatsapp     = True if reg[10]=="1" else False
+        ent_ct.is_default      = True if reg[11]=="1" else False
+        db.session.add(ent_ct)
+
+        ent_ml = CmmLegalEntityContact()
+        ent_ml.id_legal_entity = ent.id
+        ent_ml.name            = reg[12]
+        ent_ml.contact_type    = LegalEntityContactType.EMAIL.value
+        ent_ml.value           = reg[13]
+        ent_ml.is_whatsapp     = False
+        ent_ml.is_default      = True if reg[14]=="1" else False
+        db.session.add(ent_ml)
+        db.session.commit()
+
+        return True
+
+
+
+ns_legal.add_resource(EntityImport,'/process-import')
