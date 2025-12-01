@@ -144,7 +144,12 @@ class UploadImport(Resource):
     @auth.login_required
     def post(self):
         try:
-            type = request.args.get("type")
+            customer = request.headers.get("x-customer")
+            if request.args.get("type")=='E':
+                type = request.headers.get("x-entity-model")
+            elif request.args.get("type")=='P':
+                type = "product"
+
             files = []
             #obtem os arquivos para upload
             fpath = str(os.environ.get("F2B_APP_PATH"))+'assets/import/'
@@ -153,7 +158,7 @@ class UploadImport(Resource):
             for file in request.files.getlist('files[]'):
                 parts = str(file.filename).split(".")
                 ext = parts[len(parts)-1]
-                newFileName = "import_"+str(type)+"_"+datetime.now().strftime("%Y%m%d-%H%M%S")+"."+ext
+                newFileName = "import_"+str(customer)+"_"+str(type)+"_"+datetime.now().strftime("%Y%m%d-%H%M%S")+"."+ext
                 file.save(fpath+newFileName)
                 file.close()
                 files.append(newFileName)
