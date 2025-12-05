@@ -26,6 +26,7 @@ dependencies = [
     "google-genai (>=1.24.0,<2.0.0)",
     "filetype (>=1.2.0,<2.0.0)",
     "psycopg2-binary (>=2.9.11,<3.0.0)",
+    "wkhtmltopdf (>=0.2,<0.3)",
 ]
 
 [tool.poetry.dependencies]

@@ -1872,7 +1872,18 @@ MarkupSafe = ">=2.1.1"
 [package.extras]
 watchdog = ["watchdog (>=2.3)"]
 
+[[package]]
+name = "wkhtmltopdf"
+version = "0.2"
+description = "Simple python wrapper for wkhtmltopdf"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "wkhtmltopdf-0.2.tar.gz", hash = "sha256:530fffb5d1faf4f4cd5248c14fd1b4b7fe311541d0660dc2c2272c32b3c72211"},
+]
+
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<4.0"
-content-hash = "4d9471b5d0a84cee2a5c3d9d88b12c5903094d157a5be151f888279650855137"
+content-hash = "9e1445a9304f6671132b565c0d9d3fa55033660cbf79e84248358f7952849c85"
