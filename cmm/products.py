@@ -111,11 +111,13 @@ class ProductsList(Resource):
                             CmmProducts.date_updated,
                             CmmProductsTypes.name.label("type_description"),
                             CmmProductsModels.name.label("model_description"),
-                            CmmProductsGrid.name.label("grid_description")
+                            CmmProductsGrid.name.label("grid_description"),
+                            B2bCollection.name.label("moment_description")
                             ).outerjoin(CmmProductsTypes,CmmProductsTypes.id==CmmProducts.id_type)\
                             .outerjoin(CmmProductsModels,CmmProductsModels.id==CmmProducts.id_model)\
                             .outerjoin(CmmProductsGrid,CmmProductsGrid.id==CmmProducts.id_grid)\
                             .outerjoin(CmmMeasureUnit,CmmMeasureUnit.id==CmmProducts.id_measure_unit)\
+                            .outerjoin(B2bCollection,B2bCollection.id==CmmProducts.id_collection)\
                             .where(CmmProducts.trash==trash)\
                             .order_by(direction(getattr(CmmProducts, order_by)))
             
@@ -183,6 +185,7 @@ class ProductsList(Resource):
                         "type_description": m.type_description,
                         "model_description": m.model_description,
                         "grid_description":m.grid_description,
+                        "moment_description": m.moment_description,
                         "prodCode": m.prodCode,
                         "barCode": m.barCode,
                         "refCode": m.refCode,
@@ -205,6 +208,7 @@ class ProductsList(Resource):
                         "type_description": m.type_description,
                         "model_description": m.model_description,
                         "grid_description":m.grid_description,
+                        "moment_description": m.moment_description,
                         "prodCode": m.prodCode,
                         "barCode": m.barCode,
                         "refCode": m.refCode,
@@ -323,6 +327,8 @@ class ProductsList(Resource):
                 db.session.execute(Update(CmmProducts).values(price=req["ids"]).where(CmmProducts.id.in_(req["products"])))
             elif req["action"]==ProductMassiveAction.TYPE.value:
                 db.session.execute(Update(CmmProducts).values(id_type=req["ids"]).where(CmmProducts.id.in_(req["products"])))
+            elif req["action"]==ProductMassiveAction.COLLECTION.value:
+                db.session.execute(Update(CmmProducts).values(id_collection=req["ids"]).where(CmmProducts.id.in_(req["products"])))
             else: #measure
                 db.session.execute(Update(CmmProducts).values(id_measure_unit=req["ids"]).where(CmmProducts.id.in_(req["products"])))
             
