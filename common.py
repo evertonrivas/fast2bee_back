@@ -59,6 +59,11 @@ def _gen_report(fileName:str,_content:dict):
         tplLoader  = jinja2.FileSystemLoader(searchpath=str(environ.get("F2B_APP_PATH"))+'assets/layout/')
         tplEnv     = jinja2.Environment(loader=tplLoader)
 
+        # se nao existir a pasta de pdfs vai criar
+        fpath = str(os.environ.get("F2B_APP_PATH"))+'assets/pdf/'
+        if os.path.exists(fpath)==False:
+            os.mkdir(fpath)
+
         bodyReport = tplEnv.get_template(fileName)
 
         # arquivo header padrao
@@ -109,7 +114,8 @@ def _gen_report(fileName:str,_content:dict):
             'margin-right': '5mm',
             'margin-left': '5mm',
             'header-html': header_temp,
-            'footer-html': footer_temp
+            'footer-html': footer_temp,
+            "enable-local-file-access": ""
         })
         
         if os.path.exists(header_temp):
