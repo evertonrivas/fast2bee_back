@@ -1,13 +1,17 @@
+import calendar
+import simplejson
 from auth import auth
+from os import environ
 from flask import request
 import simplejson as json
+from decimal import Decimal
 from http import HTTPStatus
 from datetime import datetime,date
 from f2bconfig import CrmFunnelType
-from models.helpers import _get_params, db
+from models.helpers import _get_params, _show_query, db
 from models.tenant import ScmEvent, ScmEventType
 from flask_restx import Resource, Namespace, fields
-from sqlalchemy import exc, asc,between,Select,and_, func
+from sqlalchemy import desc, exc, asc,between,Select,and_, func, or_
 from models.tenant import CrmConfig, CrmFunnel, CrmFunnelStage 
 from models.tenant import B2bBrand, B2bCollection, ScmCalendar
 
@@ -22,9 +26,64 @@ evt_model = ns_calendar.model(
     }
 )
 
+def get_children(p_id_parent:int):
+    yquery = Select(ScmEvent.id,
+                    ScmEvent.id_parent,
+                    ScmEvent.name,
+                    ScmEvent.year,
+                    ScmEvent.start_date,
+                    ScmEvent.end_date,
+                    ScmEvent.budget_value,
+                    ScmEvent.date_created,
+                    ScmEvent.date_updated,
+                    ScmEventType.id.label("id_event_type"),
+                    ScmEventType.name.label("event_type_name"),
+                    ScmEventType.hex_color,
+                    ScmEventType.has_budget,
+                    ScmEventType.is_milestone,
+                    B2bCollection.id.label("id_collection"),
+                    B2bCollection.name.label("collection_name"),
+                    B2bBrand.id.label("id_brand"),
+                    B2bBrand.name.label("brand_name")).distinct()\
+            .join(ScmEventType,ScmEventType.id==ScmEvent.id_event_type)\
+            .join(ScmCalendar,and_(ScmEvent.year==ScmCalendar.year,ScmEvent.start_date==ScmCalendar.calendar_date))\
+            .outerjoin(B2bCollection,ScmEvent.id_collection==B2bCollection.id)\
+            .outerjoin(B2bBrand,B2bCollection.id_brand==B2bBrand.id)\
+            .where(ScmEvent.id_parent==p_id_parent)\
+            .order_by(asc(ScmEvent.start_date))
+    
+    return [{
+        "id": e.id,
+        "id_parent": e.id_parent,
+        "name": e.name,
+        "start_week": date(e.start_date.year,e.start_date.month,e.start_date.day).isocalendar().week,
+        "end_week": date(e.end_date.year,e.end_date.month,e.end_date.day).isocalendar().week,
+        "start_date": e.start_date.strftime("%Y-%m-%d"),
+        "end_date": e.end_date.strftime("%Y-%m-%d"),
+        "year":e.year,
+        "budget_value": None if e.budget_value is None else json.dumps(e.budget_value),
+        "date_created": e.date_created.strftime("%Y-%m-%d %H:%M:%S"),
+        "date_updated": e.date_updated.strftime("%Y-%m-%d %H:%M:%S") if e.date_updated is not None else None,
+        "type": {
+            "id": e.id_event_type,
+            "name": e.event_type_name,
+            "hex_color": e.hex_color,
+            "has_budget": e.has_budget,
+            "is_milestone": e.is_milestone
+        },
+        "collection":{
+            "id":e.id_collection,
+            "name": e.collection_name,
+            "brand":{
+                "id": e.id_brand,
+                "name": e.brand_name
+            }
+        }
+    } for e in db.session.execute(yquery).all()]
+
 @ns_calendar.route("/")
 class CalendarList(Resource):
-    @ns_calendar.response(HTTPStatus.OK,"Obtem a listagem de cidades")
+    @ns_calendar.response(HTTPStatus.OK,"Obtem a listagem de dados ano/mes/semanas do calendario")
     @ns_calendar.response(HTTPStatus.BAD_REQUEST,"Falha ao listar registros!")
     @ns_calendar.param("query","Texto para busca de intervalos de datas e eventos","query")
     @auth.login_required
@@ -35,8 +94,21 @@ class CalendarList(Resource):
             params = _get_params(search)
             if params is not None:
                 if params.start=="" and params.end=="":
+                    # tenta buscar eventos do calendario com maior data de fim
+                    last_date = db.session.execute(
+                        Select(ScmEvent.end_date).order_by(desc(ScmEvent.end_date))
+                    ).first()
+                    if last_date is None:
+                        params.end = date(datetime.now().year,12,31)
+                    else:
+                        # obtem o ultimo dia do mes da data do maior evento
+                        _,num_days = calendar.monthrange(last_date.end_date.year,last_date.end_date.month)
+                        if num_days > last_date.end_date.day:
+                            params.end = datetime(last_date.end_date.year,last_date.end_date.month,num_days).date()
+                        else:
+                            params.end = last_date.end_date
                     params.start = date(datetime.now().year,1,1)
-                    params.end = date(datetime.now().year,12,31)
+                    
 
                 yquery = Select(ScmCalendar.year).distinct()\
                     .where(between(ScmCalendar.calendar_date,params.start,params.end))\
@@ -69,12 +141,12 @@ class CalendarList(Resource):
     
     def __get_weeks(self,dt_start,dt_end,_current_year,_current_month):
         weeks = []
-        for w in db.session.execute(Select(ScmCalendar.week).distinct()\
-            .where(between(ScmCalendar.calendar_date,dt_start,dt_end))\
-            .where(and_(ScmCalendar.year==_current_year,ScmCalendar.month==_current_month))\
-            .where(ScmCalendar.day_of_week==7)
+        qry = Select(ScmCalendar.week).distinct()\
+            .where(ScmCalendar.calendar_date.between(dt_start,dt_end))\
+            .where(and_(ScmCalendar.year==_current_year,ScmCalendar.month==_current_month,ScmCalendar.day_of_week==7))
             # .order_by(asc(ScmCalendar.time_id))
-        ).all():
+        # _show_query(qry)
+        for w in db.session.execute(qry).all():
             weeks.append(w.week)
         return weeks
 
@@ -166,7 +238,7 @@ class CalendarList(Resource):
 @ns_calendar.route("/<int:id>")
 @ns_calendar.param("id","Id do registro")
 class CalendarEventApi(Resource):
-    @ns_calendar.response(HTTPStatus.OK,"Retorna os dados de um evento")
+    @ns_calendar.response(HTTPStatus.OK,"Retorna os dados de um evento especifico")
     @ns_calendar.response(HTTPStatus.BAD_REQUEST,"Registro não encontrado!")
     @auth.login_required
     def get(self,id:int):
@@ -265,14 +337,14 @@ class CalendarEventApi(Resource):
                 "error_sql": e._sql_message()
             }
 
-    @ns_calendar.response(HTTPStatus.OK,"Exclui os dados de um tipo de evento")
+    @ns_calendar.response(HTTPStatus.OK,"Exclui os dados de um evento")
     @ns_calendar.response(HTTPStatus.BAD_REQUEST,"Registro não encontrado!")
     @auth.login_required
     def delete(self,id:int):
         pass
 
 class CalendarEventList(Resource):
-    @ns_calendar.response(HTTPStatus.OK,"Obtem a listagem de cidades")
+    @ns_calendar.response(HTTPStatus.OK,"Obtem a listagem de eventos do calendario (baseado em data de inicio e fim)")
     @ns_calendar.response(HTTPStatus.BAD_REQUEST,"Falha ao listar registros!")
     @ns_calendar.param("query","Texto para busca de intervalos de datas e eventos","query")
     @auth.login_required
@@ -310,7 +382,7 @@ class CalendarEventList(Resource):
                 .outerjoin(B2bCollection,ScmEvent.id_collection==B2bCollection.id)\
                 .outerjoin(B2bBrand,B2bCollection.id_brand==B2bBrand.id)\
                 .where(between(ScmCalendar.calendar_date,params.start,params.end))\
-                .where(ScmEventType.id_parent.is_(None))\
+                .where(or_(ScmEvent.id_parent.is_(None),ScmEvent.id_parent==0))\
                 .order_by(asc(ScmEvent.start_date))
             
             if hasattr(params,'entity_type'):
@@ -343,7 +415,7 @@ class CalendarEventList(Resource):
                             "name": e.brand_name
                         }
                     },
-                    "children":self.__get_children(e.id)
+                    "children": get_children(e.id)
                 } for e in db.session.execute(yquery).all()]
 
             return retorno
@@ -353,60 +425,136 @@ class CalendarEventList(Resource):
                 "error_details": e._message(),
                 "error_sql": e._sql_message()
             }
-    
-    def __get_children(self,p_id_parent:int):
-        yquery = Select(ScmEvent.id,
-                        ScmEvent.id_parent,
-                        ScmEvent.name,
-                        ScmEvent.year,
-                        ScmEvent.start_date,
-                        ScmEvent.end_date,
-                        ScmEvent.budget_value,
-                        ScmEvent.date_created,
-                        ScmEvent.date_updated,
-                        ScmEventType.id.label("id_event_type"),
-                        ScmEventType.name.label("event_type_name"),
-                        ScmEventType.hex_color,
-                        ScmEventType.has_budget,
-                        ScmEventType.is_milestone,
-                        B2bCollection.id.label("id_collection"),
-                        B2bCollection.name.label("collection_name"),
-                        B2bBrand.id.label("id_brand"),
-                        B2bBrand.name.label("brand_name")).distinct()\
+
+ns_calendar.add_resource(CalendarEventList,"/all-events")
+
+
+class EventList(Resource):
+    @ns_calendar.response(HTTPStatus.OK,"Obtem a listagem de eventos do sistema")
+    @ns_calendar.response(HTTPStatus.BAD_REQUEST,"Registro não encontrado!")
+    @ns_calendar.param("page","Número da página de registros","query",type=int,required=True)
+    @ns_calendar.param("pageSize","Número de registros por página","query",type=int,required=True,default=25)
+    @ns_calendar.param("query","Texto para busca","query")
+    def get(self):
+        pag_num  = 1 if request.args.get("page") is None else int(str(request.args.get("page")))
+        pag_size = int(str(environ.get("F2B_PAGINATION_SIZE"))) if request.args.get("pageSize") is None else int(str(request.args.get("pageSize")))
+        query    = "" if request.args.get("query") is None else str(request.args.get("query"))
+        try:
+            params    = _get_params(query)
+            direction = asc if not hasattr(params,'order') else asc if params is not None and params.order=='ASC' else desc
+            order_by  = 'id' if not hasattr(params,'order_by') else params.order_by if params is not None else 'id'
+            search    = None if not hasattr(params,"search") else params.search if params is not None else None
+            trash     = False if not hasattr(params,'trash') else True
+            list_all  = False if not hasattr(params,'list_all') else True
+
+            just_parent = False if not hasattr(params,'just_parent') else True
+
+            rquery = Select(ScmEvent.id,
+                            ScmEvent.id_parent,
+                            ScmEvent.name,
+                            ScmEvent.year,
+                            ScmEvent.start_date,
+                            ScmEvent.end_date,
+                            ScmEvent.budget_value,
+                            ScmEvent.date_created,
+                            ScmEvent.date_updated,
+                            ScmEventType.id.label("id_event_type"),
+                            ScmEventType.name.label("event_type_name"),
+                            ScmEventType.hex_color,
+                            ScmEventType.has_budget,
+                            ScmEventType.is_milestone,
+                            B2bCollection.id.label("id_collection"),
+                            B2bCollection.name.label("collection_name"),
+                            B2bBrand.id.label("id_brand"),
+                            B2bBrand.name.label("brand_name")).distinct()\
                 .join(ScmEventType,ScmEventType.id==ScmEvent.id_event_type)\
                 .join(ScmCalendar,and_(ScmEvent.year==ScmCalendar.year,ScmEvent.start_date==ScmCalendar.calendar_date))\
                 .outerjoin(B2bCollection,ScmEvent.id_collection==B2bCollection.id)\
                 .outerjoin(B2bBrand,B2bCollection.id_brand==B2bBrand.id)\
-                .where(ScmEvent.id_parent==p_id_parent)\
-                .order_by(asc(ScmEvent.start_date))
-        
-        return [{
-            "id": e.id,
-            "id_parent": e.id_parent,
-            "name": e.name,
-            "start_week": date(e.start_date.year,e.start_date.month,e.start_date.day).isocalendar().week,
-            "end_week": date(e.end_date.year,e.end_date.month,e.end_date.day).isocalendar().week,
-            "start_date": e.start_date.strftime("%Y-%m-%d"),
-            "end_date": e.end_date.strftime("%Y-%m-%d"),
-            "year":e.year,
-            "budget_value": None if e.budget_value is None else json.dumps(e.budget_value),
-            "date_created": e.date_created.strftime("%Y-%m-%d %H:%M:%S"),
-            "date_updated": e.date_updated.strftime("%Y-%m-%d %H:%M:%S") if e.date_updated is not None else None,
-            "type": {
-                "id": e.id_event_type,
-                "name": e.event_type_name,
-                "hex_color": e.hex_color,
-                "has_budget": e.has_budget,
-                "is_milestone": e.is_milestone
-            },
-            "collection":{
-                "id":e.id_collection,
-                "name": e.collection_name,
-                "brand":{
-                    "id": e.id_brand,
-                    "name": e.brand_name
-                }
-            }
-        } for e in db.session.execute(yquery).all()]
+                .where(ScmEvent.trash==trash)\
+                .where(ScmEventType.is_milestone==False)\
+                .order_by(direction(getattr(ScmEvent,order_by)))
+            
+            if just_parent == True:
+                rquery = rquery.where(or_(ScmEvent.id_parent.is_(None),ScmEvent.id_parent==0))
+            
+            if search is not None:
+                rquery = rquery.where(ScmEvent.name.like("%{}%".format(search)))
 
-ns_calendar.add_resource(CalendarEventList,"/events")
+            if not list_all:
+                pag = db.paginate(rquery,page=pag_num,per_page=pag_size)
+                rquery = rquery.limit(pag_size).offset((pag_num - 1) * pag_size)
+
+                retorno = {
+                    "pagination":{
+                        "registers": pag.total,
+                        "page": pag_num,
+                        "per_page": pag_size,
+                        "pages": pag.pages,
+                        "has_next": pag.has_next
+                    },
+                    "data":[{
+                        "id": m.id,
+                        "id_parent": m.id_parent,
+                        "name": m.name,
+                        "year": m.year,
+                        "start_date": m.start_date.strftime("%Y-%m-%d %H:%M:%S"),
+                        "end_date": m.end_date.strftime("%Y-%m-%d %H:%M:%S"),
+                        "budged_value": simplejson.dumps(Decimal(0 if m.budget_value is None else m.budget_value)),
+                        "type": {
+                            "id": m.id_event_type,
+                            "name": m.event_type_name,
+                            "hex_color": m.hex_color,
+                            "has_budget": m.has_budget,
+                            "is_milestone": m.is_milestone
+                        },
+                        "collection":{
+                            "id":m.id_collection,
+                            "name": m.collection_name,
+                            "brand":{
+                                "id": m.id_brand,
+                                "name": m.brand_name
+                            }
+                        },
+                        "children": get_children(m.id),
+                        "date_created": m.date_created.strftime("%Y-%m-%d %H:%M:%S"),
+                        "date_updated": m.date_updated.strftime("%Y-%m-%d %H:%M:%S") if m.date_updated is not None else None
+                    } for m in db.session.execute(rquery)]
+                }
+            else:
+                retorno = [{
+                        "id": m.id,
+                        "id_parent": m.id_parent,
+                        "name": m.name,
+                        "year": m.year,
+                        "start_date": m.start_date.strftime("%Y-%m-%d %H:%M:%S"),
+                        "end_date": m.end_date.strftime("%Y-%m-%d %H:%M:%S"),
+                        "budged_value": simplejson.dumps(Decimal(0 if m.budget_value is None else m.budget_value)),
+                        "type": {
+                            "id": m.id_event_type,
+                            "name": m.event_type_name,
+                            "hex_color": m.hex_color,
+                            "has_budget": m.has_budget,
+                            "is_milestone": m.is_milestone
+                        },
+                        "collection":{
+                            "id": m.id_collection,
+                            "name": m.collection_name,
+                            "brand":{
+                                "id": m.id_brand,
+                                "name": m.brand_name
+                            }
+                        },
+                        "children": get_children(m.id),
+                        "date_created": m.date_created.strftime("%Y-%m-%d %H:%M:%S"),
+                        "date_updated": m.date_updated.strftime("%Y-%m-%d %H:%M:%S") if m.date_updated is not None else None
+                    } for m in db.session.execute(rquery)]
+            return retorno
+        except exc.SQLAlchemyError as e:
+            return {
+                "error_code": e.code,
+                "error_details": e._message(),
+                "error_sql": e._sql_message()
+            }
+
+ns_calendar.add_resource(EventList,"/events")
