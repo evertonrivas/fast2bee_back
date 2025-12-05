@@ -40,14 +40,21 @@ class CartApi(Resource):
             pquery = Select(B2bCartShopping.id_product,
                             B2bCartShopping.id_customer,
                             CmmLegalEntities.fantasy_name,
-                            B2bCartShopping.price,
+                            func.sum(B2bCartShopping.price).label("price"),
                             CmmProductsImages.img_url,
-                            CmmProducts.name,CmmProducts.refCode,
+                            CmmProducts.name,
+                            CmmProducts.refCode,
                             func.sum(B2bCartShopping.quantity).label("total")).distinct()\
                 .join(CmmProductsImages,and_(CmmProductsImages.id_product==B2bCartShopping.id_product,CmmProductsImages.img_default.is_(True)))\
                 .join(CmmLegalEntities,CmmLegalEntities.id==B2bCartShopping.id_customer)\
                 .join(CmmProducts,CmmProducts.id==B2bCartShopping.id_product)\
-                .group_by(B2bCartShopping.id_product)
+                .group_by(
+                    B2bCartShopping.id_product,
+                    B2bCartShopping.id_customer,
+                    CmmLegalEntities.fantasy_name,
+                    CmmProducts.name,
+                    CmmProducts.refCode,
+                    CmmProductsImages.img_url).order_by(asc(B2bCartShopping.id_customer))
             
             #colors query
             cquery = Select(B2bCartShopping.id_color,
@@ -57,15 +64,13 @@ class CartApi(Resource):
                 .join(CmmTranslateColors,CmmTranslateColors.id==B2bCartShopping.id_color)\
             
             if user_type=='C':
-                pquery = pquery.where(B2bCartShopping.id_customer==id_profile).order_by(direction(getattr(B2bCartShopping,str(order_by))))
+                pquery = pquery.where(B2bCartShopping.id_customer==id_profile)
             elif user_type=='R':
                 pquery = pquery.where(B2bCartShopping.id_customer.in_(
                     Select(B2bCustomerGroupCustomers.id_customer)
                     .join(B2bCustomerGroup,B2bCustomerGroup.id==B2bCustomerGroupCustomers.id_customer_group)\
                     .where(B2bCustomerGroup.id_representative==id_profile)
-                )).group_by(B2bCartShopping.id_customer).order_by(asc(B2bCartShopping.id_customer))
-            elif user_type=='A':
-                pquery = pquery.group_by(B2bCartShopping.id_customer).order_by(asc(B2bCartShopping.id_customer))
+                ))
 
             # _show_query(pquery)
             
@@ -337,10 +342,7 @@ class CartTotal(Resource):
 
         #zera o SQL se for admin
         if userType=='A':
-            query = Select(func.count(
-                    text("DISTINCT id_customer,id_product")
-                ).label("total"))\
-                    .select_from(B2bCartShopping)
+            query = text("SELECT COUNT(DISTINCT (id_customer,id_product)) as total from b2b_cart_shopping")
 
         return db.session.execute(query).one().total if userType!='A' else db.session.execute(query).scalar()
 
