@@ -94,12 +94,13 @@ class ComissionType(Enum):
     COLLECTION = 'C'
 
 class ProductMassiveAction(Enum):
-    CATEGORY = 1
-    GRID     = 2
-    MODEL    = 3
-    PRICE    = 4
-    TYPE     = 5
-    MEASURE  = 6
+    CATEGORY   = 1
+    GRID       = 2
+    MODEL      = 3
+    PRICE      = 4
+    TYPE       = 5
+    MEASURE    = 6
+    COLLECTION = 7
 
 
 class Reports(Enum):
