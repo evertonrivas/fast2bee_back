@@ -602,7 +602,7 @@ class EntityOfStage(Resource):
             params = _get_params(request.args.get("query"))
             direction = asc if not hasattr(params,'order') else asc if params is not None and params.order=='ASC' else desc
             order_by  = 'id' if not hasattr(params,'order_by') else params.order_by if params is not None else 'id'
-            search    = False if not hasattr(params,"search") else params.search
+            search    = None if not hasattr(params,"search") else params.search
 
             rquery = Select(
                 CmmLegalEntities.id,
